@@ -32,10 +32,10 @@ import {
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
-type ViewName = "now" | "day" | "week" | "month" | "agenda" | "timeline";
+type ViewName = "now" | "day" | "week" | "month" | "month_table" | "agenda" | "timeline";
 /** Canonical toggle order. */
-const ALL_VIEWS: ViewName[] = ["now", "day", "timeline", "week", "month", "agenda"];
-/** Views shown when `views` is not configured. "now" is opt-in, so existing boards stay as they are. */
+const ALL_VIEWS: ViewName[] = ["now", "day", "timeline", "week", "month", "month_table", "agenda"];
+/** Views shown when `views` is not configured. "now" and "month_table" are opt-in, so existing boards stay as they are. */
 const DEFAULT_VIEWS: ViewName[] = ["day", "timeline", "week", "month", "agenda"];
 
 interface PersonConfig {
@@ -90,7 +90,7 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   event_size?: number; // event title font size in px (editor slider -> --fb-event-size)
   radius?: number; // corner radius of event blocks in px (-> --fb-radius)
   past_opacity?: number; // opacity of past events in percent (-> --fb-past-opacity)
-  hide_empty_persons?: boolean; // week view: skip persons without events that week
+  hide_empty_persons?: boolean; // week/month table: skip persons without events in the period
   auto_return?: number; // kiosk: minutes of inactivity before returning to the default view. 0=off
   day_offset?: number; // start the day/timeline view N days from today (1 = tomorrow, -1 = yesterday)
   slim_header?: boolean; // weekday tabs on the nav line, avatar beside the name
@@ -419,8 +419,11 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     const v = this._config?.views;
     const chosen = Array.isArray(v) ? ALL_VIEWS.filter((x) => v.includes(x)) : [];
     if (chosen.length) return chosen;
-    // asking for the now view as default is enough to switch it on
-    return this._config?.view === "now" ? ["now", ...DEFAULT_VIEWS] : [...DEFAULT_VIEWS];
+    // New views are opt-in; choosing one as default also enables its tab.
+    const wanted = this._config?.view;
+    if (wanted === "now") return ["now", ...DEFAULT_VIEWS];
+    if (wanted === "month_table") return [...DEFAULT_VIEWS.slice(0, 4), "month_table", "agenda"];
+    return [...DEFAULT_VIEWS];
   }
 
   /** JS weekday (0=Sun..6=Sat) of the configured week start. */
@@ -783,13 +786,19 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     return { monday, nextMonday };
   }
 
+  /** Exact calendar-month bounds, with an exclusive end. */
+  private _monthBounds(): { start: Date; end: Date; numDays: number } {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() + this._monthOffset, 1);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+    return { start, end, numDays: daysBetween(start, end) };
+  }
+
   /** Grid geometry for the currently shown month (week-start aware). */
   private _monthGrid(): { gridStart: Date; weeks: number; month: number; year: number } {
-    const base = new Date();
-    const target = new Date(base.getFullYear(), base.getMonth() + this._monthOffset, 1);
+    const { start: target, numDays: daysInMonth } = this._monthBounds();
     const offset = (target.getDay() - this._firstDayJs + 7) % 7;
     const gridStart = startOfDay(new Date(target.getFullYear(), target.getMonth(), 1 - offset));
-    const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
     const weeks = Math.ceil((offset + daysInMonth) / 7);
     return { gridStart, weeks, month: target.getMonth(), year: target.getFullYear() };
   }
@@ -801,6 +810,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
       const start = startOfDay(new Date());
       return { start, end: addDays(start, 8) };
     }
+    if (this._view === "month_table") return this._monthBounds();
     if (this._view === "month") {
       const { gridStart, weeks } = this._monthGrid();
       return { start: gridStart, end: addDays(gridStart, weeks * 7) };
@@ -814,8 +824,8 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     const scope =
       this._view === "now"
         ? `n${toLocalDate(new Date())}`
-        : this._view === "month"
-          ? `m${this._monthOffset}`
+        : this._view === "month" || this._view === "month_table"
+          ? `${this._view}${this._monthOffset}`
           : `w${this._weekOffset}`;
     const key = `${scope}|${cals}`;
     if (key === this._fetchedKey) return;
@@ -1077,7 +1087,9 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     // Week views index events by weekday; month builds its own grid from _raw.
     const { monday } = this._weekBounds();
     this._events =
-      this._view === "month" ? [] : cleaned.flatMap((r) => splitIntoSegments(r, monday));
+      this._view === "month" || this._view === "month_table"
+        ? []
+        : cleaned.flatMap((r) => splitIntoSegments(r, monday));
     this._loadError = anyError && raws.length === 0;
     this._loading = false;
   }
@@ -1559,7 +1571,9 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
                   ? this._renderWeek()
                   : this._view === "month"
                     ? this._renderMonth()
-                    : this._renderAgenda()
+                    : this._view === "month_table"
+                      ? this._renderPeopleTable(true)
+                      : this._renderAgenda()
         }
       </ha-card>
       ${this._dialog ? this._renderDialog() : nothing}
@@ -2359,19 +2373,38 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
   }
 
   private _renderWeek() {
+    return this._renderPeopleTable();
+  }
+
+  /** Shared days-by-person table for a week or an exact calendar month. */
+  private _renderPeopleTable(month = false) {
     const short = weekdayNames(this.hass, "short", this._firstDayJs);
-    // optionally hide persons without any events in the shown week
+    const { start, numDays } = this._monthBounds();
+    const events = month
+      ? this._raw.flatMap((r) => splitAcrossDays(r, start, numDays))
+      : this._events;
+    const dateFor = (d: number) => (month ? addDays(start, d) : this._dateForDay(d));
+    const today = startOfDay(new Date()).getTime();
+    const isToday = (d: number) => dateFor(d).getTime() === today;
+    const openDay = (d: number) => (month ? this._goToDate(dateFor(d)) : this._openDayView(d));
+    const days = month
+      ? Array.from({ length: numDays }, (_, d) => d).filter((d) => {
+          const js = dateFor(d).getDay();
+          return this._config.show_weekends !== false || (js !== 0 && js !== 6);
+        })
+      : this._visibleDays;
+    // Optionally hide persons without events in the displayed period.
     const people = this._persons
       .map((p, i) => ({ p, i }))
       .filter(
         ({ i }) =>
-          this._config.hide_empty_persons !== true || this._events.some((e) => e.personIdx === i),
+          this._config.hide_empty_persons !== true || events.some((e) => e.personIdx === i),
       );
     const shown = people.length > 0 ? people : this._persons.map((p, i) => ({ p, i }));
-    const cols = `70px repeat(${shown.length}, minmax(110px, 1fr))`;
+    const cols = `${month ? 92 : 70}px repeat(${shown.length}, minmax(110px, 1fr))`;
     return html`
-      <div class="weekhead">${this._weekNav()}</div>
-      <div class="weekwrap">
+      <div class="weekhead">${month ? this._monthNav() : this._weekNav()}</div>
+      <div class="weekwrap ${month ? "month-table" : ""}">
         <div class="weekgrid" style="grid-template-columns:${cols}">
           <div class="corner"></div>
           ${shown.map(
@@ -2392,34 +2425,41 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
                 ${this._avatar(p, i)}<span>${this._personName(p, i)}</span>
               </div>`,
           )}
-          ${this._visibleDays.map(
+          ${days.map(
             (d) => html`
               <div
-                class="wday ${this._isRealToday(d) ? "today" : ""}"
+                class="wday ${isToday(d) ? "today" : ""}"
                 role="button"
                 tabindex="0"
-                aria-label=${this._dateLabel(this._dateForDay(d))}
+                aria-label=${this._dateLabel(dateFor(d))}
                 title=${this._t("day")}
-                @click=${() => this._openDayView(d)}
+                @click=${() => openDay(d)}
                 @keydown=${(k: KeyboardEvent) => {
                   if (k.key === "Enter" || k.key === " ") {
                     k.preventDefault();
-                    this._openDayView(d);
+                    openDay(d);
                   }
                 }}
               >
-                <b>${short[d]}</b>${this._weatherChip(this._dateForDay(d), "short")}
+                <b>${short[month ? (dateFor(d).getDay() - this._firstDayJs + 7) % 7 : d]}</b>
+                ${month ? html`<span>${toLocalDate(dateFor(d)).slice(8)}.${toLocalDate(dateFor(d)).slice(5, 7)}.</span>` : nothing}${this._weatherChip(dateFor(d), "short")}
               </div>
               ${shown.map(({ p, i }) => {
                 const canCreate = this._personCanCreate(p);
                 return html`
                   <div
-                    class="wcell ${this._isRealToday(d) ? "today" : ""} ${
-                      canCreate ? "creatable" : ""
-                    }"
-                    @click=${() => canCreate && this._openCreate(i, d)}
+                    class="wcell ${isToday(d) ? "today" : ""} ${canCreate ? "creatable" : ""}"
+                    @click=${() => canCreate && this._openCreateForDate(i, dateFor(d))}
                   >
-                    ${this._eventsFor(d, i).map((e) => {
+                    ${(this._isOff(i)
+                      ? []
+                      : events
+                          .filter((e) => e.day === d && e.personIdx === i)
+                          .sort(
+                            (a, b) =>
+                              Number(b.allDay) - Number(a.allDay) || a.startMin - b.startMin,
+                          )
+                    ).map((e) => {
                       const c = this._eventColor(e);
                       const tent = this._isTentative(e);
                       return html`
@@ -2604,14 +2644,23 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  private _monthNav() {
+    const { start } = this._monthBounds();
+    const monthName = new Intl.DateTimeFormat(this.hass.locale?.language || "en", {
+      month: "long",
+      year: "numeric",
+    }).format(start);
+    return html`<div class="weeknav">
+      <button class="nav" aria-label=${this._t("prev_month")} @click=${this._prevMonth}>‹</button>
+      <button class="nav-now" @click=${this._thisMonth}>${monthName}</button>
+      <button class="nav" aria-label=${this._t("next_month")} @click=${this._nextMonth}>›</button>
+    </div>`;
+  }
+
   private _renderMonth() {
     const { gridStart, weeks, month, year } = this._monthGrid();
     const numDays = weeks * 7;
     const short = weekdayNames(this.hass, "short", this._firstDayJs);
-    const locale = this.hass.locale?.language || "en";
-    const monthName = new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(
-      new Date(year, month, 1),
-    );
     const byDay = new Map<number, BoardEvent[]>();
     for (const r of this._raw) {
       if (this._isOff(r.personIdx)) continue;
@@ -2624,17 +2673,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     const today = startOfDay(new Date()).getTime();
     const maxChips = 3;
     return html`
-      <div class="weekhead">
-        <div class="weeknav">
-          <button class="nav" aria-label=${this._t("prev_month")} @click=${this._prevMonth}>
-            ‹
-          </button>
-          <button class="nav-now" @click=${this._thisMonth}>${monthName}</button>
-          <button class="nav" aria-label=${this._t("next_month")} @click=${this._nextMonth}>
-            ›
-          </button>
-        </div>
-      </div>
+      <div class="weekhead">${this._monthNav()}</div>
       ${this._loadError ? html`<div class="banner">${this._t("load_error")}</div>` : nothing}
       <div class="monthwrap">
         <div class="monthhead">${short.map((s) => html`<div class="mhcell">${s}</div>`)}</div>
@@ -2729,12 +2768,17 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
   }
 
   private _openCreate(idx: number, day: number, startMin?: number): void {
+    this._openCreateForDate(idx, this._dateForDay(day), startMin);
+  }
+
+  private _openCreateForDate(idx: number, date: Date, startMin?: number): void {
     const p = this._persons[idx];
     const writable = this._writableCals(p);
     if (writable.length === 0) return;
-    const base = startOfDay(this._dateForDay(day));
+    const base = startOfDay(date);
     const sMin = startMin ?? Math.max(this._startMin, 9 * 60);
-    const start = new Date(base.getTime() + sMin * 60000);
+    const start = new Date(base);
+    start.setHours(Math.floor(sMin / 60), sMin % 60, 0, 0);
     const end = new Date(start.getTime() + 60 * 60000);
     this._dialog = {
       mode: "create",
@@ -4596,6 +4640,14 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
       overflow: auto;
       max-height: 60vh;
     }
+    .month-table .wday {
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
+    }
+    .month-table .wcell {
+      min-height: 48px;
+    }
     .weekgrid {
       display: grid;
     }
@@ -4873,7 +4925,7 @@ if (!customElements.get("family-board-card")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD %c v0.30.0 ",
+  "%c FAMILY-BOARD-CARD %c v0.30.0-month-table.1 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );

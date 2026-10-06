@@ -174,3 +174,17 @@ describe("editor presets", () => {
     expect(cfg.full_height).toBeUndefined();
   });
 });
+
+it("offers the localized month table and its empty-person filter", async () => {
+  const { el, fields } = await mountEditor({ views: ["month_table"], view: "month_table" });
+  expect(fields()).toContain("hide_empty_persons");
+  expect((el as any)._viewOptions()).toContainEqual({
+    value: "month_table",
+    label: "Monatstabelle",
+  });
+  const en = await mountEditor({ views: ["month_table"] }, "en");
+  expect((en.el as any)._viewOptions()).toContainEqual({
+    value: "month_table",
+    label: "Month table",
+  });
+});

@@ -1,4 +1,25 @@
-# Family Board Card
+# Family Board Card – Month Table
+
+This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.30.0**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` while keeping the original views and configuration compatible.
+
+**Fork version: `0.30.0-month-table.1`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+
+## Enable the month table
+
+```yaml
+type: custom:family-board-card
+view: month_table
+views: [day, week, month, month_table, agenda]
+persons:
+  - name: Anna
+    calendar: calendar.anna
+  - name: Ben
+    calendar: calendar.ben
+```
+
+Keep your existing `persons:` entries. If you already set `views:`, include `month_table` in that list. For just the table, use `views: [month_table]`. The new view is opt-in; existing boards retain their current view selection.
+
+The table has sticky person headers and a date column, month navigation, event dialogs, and event creation on writable calendars. `show_weekends: false` hides weekends; `hide_empty_persons: true` hides people without events in the selected month (if everyone is empty, all columns remain visible). Clicking a date opens the day view when enabled. [Detailed German setup guide](INSTALLATION.de.md).
 
 **English** · [Deutsch](README.de.md)
 
@@ -21,6 +42,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 
 - **Day view** – people as columns, a shared time axis, now line; **overlapping events** are placed side by side.
 - **Week view** – weekdays as rows, people as columns, compact event chips.
+- **Month table** – every day of the selected month as a row, people as columns, with sticky headers.
 - **Month view** – classic month grid with colored events per person; clicking a day jumps into the day view.
 - **Agenda / list view** – chronological list of events grouped by day; ideal on a phone.
 - **Due tasks** – optionally the board shows open `todo.*` tasks that are due today or overdue as chips in the all-day row and in the agenda. Works with any todo integration (Apple Reminders, Todoist, Google Tasks, Bring!, local lists) and **needs no second card**; assign no lists and you will never notice the feature. Checking tasks off stays where the task lives.
@@ -32,7 +54,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Accessible** – fully usable by keyboard (arrow keys in the tab lists, focus moves into the dialog and stays there until Esc), and screen readers announce events with title, time and person. Checked with axe-core in every view.
 - **Auto icons** – optionally every event gets a matching emoji by keyword (doctor → 🩺, sport → 🏃, birthday → 🎂, school → 🎒 …); custom rules possible. Titles that already contain an emoji stay untouched.
 - **Timeline view** – people as rows on the left, time running horizontally: events as bars on a timeline (Gantt style); overlapping events stack into sub-rows.
-- **Pick your views** – choose in the editor which switchers (now/day/timeline/week/month/agenda) appear.
+- **Pick your views** – choose in the editor which switchers (now/day/timeline/week/month/month_table/agenda) appear.
 - **Week navigation** – page back and forth, a click on the date range jumps back to “today”.
 - **Theme-aware** – picks up the colors and fonts of the active dashboard theme (uses HA CSS variables throughout).
 - **Configurable** – 15/30/60 min grid, day window, weekend on/off, color by person or location, auto refresh.
@@ -62,31 +84,38 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Compact mode** – one switch (`compact`) for smaller fonts and tighter spacing instead of adjusting three sliders.
 - **People hidden on start** – `hidden: true` per person; the column starts collapsed and a click on the header brings it back.
 
-> Status: **v0.30 – complete family day planning: 6 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
+> Status: **v0.30.0-month-table.1 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
 
-## Installation (HACS)
+## Installation
 
-The card is part of the official HACS store:
+### Manual installation
 
-1. Open HACS → search for **Family Board Card** → install.
-2. In storage mode the Lovelace resource is registered automatically as `/hacsfiles/ha-family-board-card/ha-family-board-card.js` (in YAML mode add it manually).
-3. Add the card to a dashboard: `type: custom:family-board-card` — or simply pick “Family Board Card” in the card picker.
-
-### Manually (quick test without HACS)
-
-Copy `dist/ha-family-board-card.js` to `config/www/` and add it as a resource:
+Use `dist/ha-family-board-card.js` from this fork, or build it with `npm ci && npm run build`. Copy it to `/config/www/family-board-month-table.js` and add this dashboard resource:
 
 ```yaml
-url: /local/ha-family-board-card.js
+url: /local/family-board-month-table.js?v=0.30.0-month-table.1
 type: module
 ```
+
+**Load only one version:** this fork keeps `custom:family-board-card` for configuration compatibility. Replace the original card's resource entry; loading both versions causes custom-element registration conflicts. Reload the browser/frontend cache after changing resources.
+
+### HACS custom repository
+
+Use this fork as a **custom repository**, not the upstream entry in the default store. Once a release with the `ha-family-board-card.js` asset is published here:
+
+1. In HACS, open **Custom repositories** and add `https://github.com/HartLander/ha-family-board-card-month-table` with category **Dashboard** (called **Lovelace/plugin** in some versions).
+2. Install **Family Board Card – Month Table**.
+3. Verify that the dashboard resource is `/hacsfiles/ha-family-board-card-month-table/ha-family-board-card.js` with type `module`, and remove the original card's resource entry.
+4. Add `type: custom:family-board-card` with `view: month_table`.
+
+Until the fork has a release, use the manual installation above. Maintainer release notes: [docs/HACS_STORE.md](docs/HACS_STORE.md).
 
 ## Configuration
 
 ```yaml
 type: custom:family-board-card
 title: Family board # optional, custom card title
-view: day           # day | timeline | week | month | agenda
+view: day           # now | day | timeline | week | month | month_table | agenda
 time_grid: 30       # 15 | 30 | 60
 start_hour: 6
 end_hour: 22
@@ -111,7 +140,7 @@ persons:
 |--------|------|---------|-------------|
 | `persons` | list | – | 1–10 people with `name`, `person`, `calendar` (string **or list**), optionally `color`, `badges` (entities as chips) and `hidden` (starts collapsed) |
 | `persons[].tasks` | string/list | – | `todo.*` list(s) of this person; tasks due today and overdue ones appear as chips (day view + agenda). Without it the card queries no list at all |
-| `hide_empty_persons` | boolean | `false` | Week view: hide people without events in that week |
+| `hide_empty_persons` | boolean | `false` | Week/month table: hide people without events in the period |
 | `show_alerts` | boolean | `false` | Day check above the day/timeline views: double bookings, care gaps and “nobody home” as chips |
 | `gap_min` | number | `60` | How many minutes a gap between two of a person's events must reach to be flagged (0 = off) |
 | `show_focus` | boolean | `false` | “Now / next” bar per person above the views |
@@ -120,8 +149,8 @@ persons:
 | `icon_patterns` | list | – | Custom icon rules, e.g. `["Grandma => 👵"]` |
 | `auto_return` | number | `0` | Kiosk: return to the start view / today after X minutes without a touch (0 = off) |
 | `title` | string | – | Custom card title (default: localized “Family board”) |
-| `view` | string | `day` | Start view: `now`, `day`, `timeline`, `week`, `month` or `agenda` |
-| `views` | list | all except `now` | Which views appear in the switcher, e.g. `[now, day, agenda]` |
+| `view` | string | `day` | Start view: `now`, `day`, `timeline`, `week`, `month`, `month_table` or `agenda` |
+| `views` | list | all except `now` and `month_table` (opt-in) | Which views appear in the switcher, e.g. `[now, day, agenda]` |
 | `time_grid` | number | `30` | Time axis grid in minutes |
 | `start_hour` | number | `6` | First visible hour |
 | `end_hour` | number | `22` | Last visible hour |
@@ -246,11 +275,11 @@ In the day view, clicking an empty spot in a person's column opens the create di
 - [x] Kiosk / wall tablet mode (`full_height`, `fit_height`, `auto_return`, touch targets)
 - [x] Mobile layout (compact columns, swipeable)
 - [x] Drag & drop to move events
-- [x] Available in the official HACS store
+- [x] Month table (`month_table`) with visual editor support
 - [x] Localized visual editor (EN/DE)
 - [x] Conflict detection (double bookings, pick-up gaps, “nobody home”)
 - [x] Drag & drop in the timeline view
 
 ## License
 
-MIT
+[MIT](LICENSE). Original copyright © 2026 renespeaker. This fork retains the original copyright and permission notice; see the [upstream project](https://github.com/renespeaker/ha-family-board-card) for its history.

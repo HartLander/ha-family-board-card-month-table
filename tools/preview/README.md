@@ -23,7 +23,7 @@ Ansicht, Kontrast der eigenen Texte, Tastatur-Bedienung).
 
 ## Parameter
 
-`index.html` versteht `?view=day|timeline|week|month|agenda`, `?lang=de|en`,
+`index.html` versteht `?view=now|day|timeline|week|month|month_table|agenda`, `?lang=de|en`,
 `?dark=1` (Home-Assistant-Dark-Theme), `?alerts=1` (Tages-Check) und
 `?noweather=1` (ohne Wetter-Entität; sonst liefert das Harness eine
 10-Tage-Vorhersage ab heute).

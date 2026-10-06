@@ -162,6 +162,8 @@ for (const locale of ["de-DE", "en-US"]) {
 for (const [view, sel, width] of [
   ["week", ".wday", 1400],
   ["week", ".wday", 400],
+  ["month_table", ".wday", 1400],
+  ["month_table", ".wday", 400],
   ["month", ".mcell", 1400],
   ["month", ".mcell", 400],
 ]) {
@@ -208,6 +210,7 @@ for (const [view, dark, dialog] of [
   ["timeline"],
   ["week"],
   ["month"],
+  ["month_table"],
   ["agenda"],
   ["day", true],
   ["day", false, true],
@@ -230,6 +233,7 @@ for (const dark of [false, true]) {
   for (const [view, sel] of [
     ["day", ".event:not(.past) .etime"],
     ["week", ".wchip:not(.past) small"],
+    ["month_table", ".wchip:not(.past) small"],
     ["now", ".nrow .nnext, .nrow .nuntil, .nrow .nstat"],
   ]) {
     const { page } = await open({ view, dark });
@@ -295,7 +299,7 @@ for (const dark of [false, true]) {
 }
 
 /* --- nothing may scroll sideways out of the card -------------------- */
-for (const [view, width] of [["day", 400], ["agenda", 400], ["week", 400], ["month", 400]]) {
+for (const [view, width] of [["day", 400], ["agenda", 400], ["week", 400], ["month", 400], ["month_table", 400]]) {
   const { page } = await open({ view, width });
   const bleed = await page.evaluate(() => {
     const el = document.querySelector("family-board-card");

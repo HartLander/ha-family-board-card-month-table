@@ -15,8 +15,8 @@ interface PersonConfig {
   hidden?: boolean;
 }
 
-const VIEW_VALUES = ["now", "day", "timeline", "week", "month", "agenda"];
-/** What the card shows when `views` is unset ("now" is opt-in). */
+const VIEW_VALUES = ["now", "day", "timeline", "week", "month", "month_table", "agenda"];
+/** What the card shows when `views` is unset ("now" and "month_table" are opt-in). */
 const DEFAULT_VIEWS = ["day", "timeline", "week", "month", "agenda"];
 
 // One ha-form per person row, with entity pickers filtered by domain.
@@ -106,7 +106,8 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
     const views = Array.isArray(cfg.views) && cfg.views.length ? cfg.views : DEFAULT_VIEWS;
     const hasDay = views.includes("day");
     const hasTimeline = views.includes("timeline");
-    const hasWeek = views.includes("week");
+    const hasWeek =
+      views.includes("week") || views.includes("month_table") || cfg.view === "month_table";
 
     const layout: unknown[] = [];
     if (hasDay || hasTimeline) {
