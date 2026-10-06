@@ -188,3 +188,48 @@ it("offers the localized month table and its empty-person filter", async () => {
     label: "Month table",
   });
 });
+
+describe("full month layout option", () => {
+  it("offers the switch in Layout when the month table is available", async () => {
+    for (const config of [{ views: ["month_table"] }, { view: "month_table" }]) {
+      const { settings } = await mountEditor(config);
+      const layout = settings.schema.find((s) => s.title?.includes("Layout"));
+      expect(layout?.schema?.map((s) => s.name)).toContain("month_table_full_height");
+    }
+    const { fields } = await mountEditor({ view: "month", views: ["month", "week"] });
+    expect(fields()).not.toContain("month_table_full_height");
+  });
+
+  it("explains the full height option in German and English", async () => {
+    const de = await mountEditor({ view: "month_table" });
+    const en = await mountEditor({ view: "month_table" }, "en");
+    const field = { name: "month_table_full_height" };
+    expect(de.settings.computeLabel(field)).toBe("In Monatsübersicht ganzen Monat anzeigen");
+    expect(en.settings.computeLabel(field)).toBe("Show the entire month in the month table");
+    expect(de.settings.computeHelper(field)).toContain("Dashboard");
+    expect(en.settings.computeHelper(field)).toContain("dashboard");
+  });
+
+  it("saves both switch states without losing calendars or people", async () => {
+    const calendars = { "calendar.anna": { color: "#abcdef" } };
+    const { el, settings } = await mountEditor({ view: "month_table", calendars });
+    const changes: Record<string, unknown>[] = [];
+    el.addEventListener("config-changed", (e) => changes.push((e as CustomEvent).detail.config));
+    for (const enabled of [true, false]) {
+      settings.dispatchEvent(
+        new CustomEvent("value-changed", {
+          detail: { value: { month_table_full_height: enabled } },
+        }),
+      );
+      const config = changes[changes.length - 1];
+      expect(config).toMatchObject({
+        view: "month_table",
+        month_table_full_height: enabled,
+        persons: [{ name: "Anna", calendar: "calendar.anna" }],
+        calendars,
+      });
+      el.setConfig(config);
+      await el.updateComplete;
+    }
+  });
+});

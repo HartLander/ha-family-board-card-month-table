@@ -1,7 +1,7 @@
 # Family Board Card mit Monatstabelle
 
 Dieser Fork von [renespeaker/ha-family-board-card](https://github.com/renespeaker/ha-family-board-card) basiert auf Upstream-Version 0.30.0.
-Version des Forks: **0.30.0-month-table.2**.
+Version des Forks: **0.30.0-month-table.3**.
 
 ## Neue Ansicht
 
@@ -23,6 +23,21 @@ Navigation; ein Klick auf den Monatsnamen führt zum aktuellen Monat zurück.
 Die klassische Ansicht `month` bleibt verfügbar. Bestehende Konfigurationen
 behalten ihre bisherige Auswahl. Die Monatstabelle ist auch im Editor auswählbar.
 
+### Ganzen Monat ohne inneren Scrollbalken anzeigen
+
+Aktiviere im Karteneditor unter **Layout & Größe** den Schalter
+**In Monatsübersicht ganzen Monat anzeigen**. Alternativ in YAML:
+
+```yaml
+month_table_full_height: true
+```
+
+Die Karte wächst damit auf die Höhe aller angezeigten Tageszeilen, ohne Termine
+zu verkleinern oder abzuschneiden. Auf kleineren Bildschirmen kann das Dashboard
+selbst weiterhin scrollen; horizontales Scrollen bei vielen Personen bleibt möglich.
+Die Option gilt nur für `month_table` und ist standardmäßig ausgeschaltet.
+Mit `false` erhältst du wieder die bisherige begrenzte Höhe und fixierte Überschriften.
+
 ## Installation einer separaten Testdatei
 
 1. Entpacke dieses ZIP. Die fertige Datei liegt unter
@@ -32,7 +47,7 @@ behalten ihre bisherige Auswahl. Die Monatstabelle ist auch im Editor auswählba
 3. Ergänze in den Dashboard-Ressourcen die eigene Datei des Forks:
 
    ```yaml
-   url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.2
+   url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.3
    type: module
    ```
 
@@ -50,7 +65,7 @@ behalten ihre bisherige Auswahl. Die Monatstabelle ist auch im Editor auswählba
    Dieses alte Bundle belegt noch den Namen des Originals.
 4. Lade den Home-Assistant-Browser vollständig neu. Bei Bedarf Browsercache
    bzw. Frontendcache der Companion-App aktualisieren. Die Browserkonsole
-   zeigt bei erfolgreichem Laden `v0.30.0-month-table.2`.
+   zeigt bei erfolgreichem Laden `v0.30.0-month-table.3`.
 5. Kopiere für einen direkten Vergleich deine vorhandene Karte und ändere in
    der Kopie den Typ und die Ansicht:
 
@@ -135,7 +150,7 @@ npm run build
 Für Layout- und Barrierefreiheitsprüfungen steht `npm run check:browser` bereit;
 Chromium wird über `CHROMIUM_PATH` angegeben (siehe `tools/preview/README.md`).
 Das Browser-Harness simuliert Home Assistant. Vor dem Einsatz bitte zusätzlich
-Monatsnavigation, Scrollansicht, Termine und gegebenenfalls das Anlegen eines
+Monatsnavigation, beide Höheneinstellungen, Termine und gegebenenfalls das Anlegen eines
 Testtermins in einer echten Home-Assistant-Installation prüfen.
 
 Repository: [HartLander/ha-family-board-card-month-table](https://github.com/HartLander/ha-family-board-card-month-table).

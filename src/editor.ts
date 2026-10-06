@@ -106,8 +106,8 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
     const views = Array.isArray(cfg.views) && cfg.views.length ? cfg.views : DEFAULT_VIEWS;
     const hasDay = views.includes("day");
     const hasTimeline = views.includes("timeline");
-    const hasWeek =
-      views.includes("week") || views.includes("month_table") || cfg.view === "month_table";
+    const hasMonthTable = views.includes("month_table") || cfg.view === "month_table";
+    const hasWeek = views.includes("week") || hasMonthTable;
 
     const layout: unknown[] = [];
     if (hasDay || hasTimeline) {
@@ -153,6 +153,9 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       { name: "slim_header", selector: { boolean: {} } },
       { name: "full_height", selector: { boolean: {} } },
     );
+    if (hasMonthTable) {
+      layout.push({ name: "month_table_full_height", selector: { boolean: {} } });
+    }
 
     const extras: unknown[] = [
       {
@@ -325,6 +328,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       clear([
         "full_height",
         "fit_height",
+        "month_table_full_height",
         "trim_hours",
         "auto_return",
         "col_min_width",

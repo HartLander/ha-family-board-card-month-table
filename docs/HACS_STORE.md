@@ -13,7 +13,7 @@ Die Installationsanleitung steht in [README.de.md](../README.de.md#installation)
    `npm run build` ausführen. Zusätzlich das Browser-Harness und die Karte in
    Home Assistant prüfen.
 4. Im Repository `HartLander/ha-family-board-card-month-table` ein Release vom
-   geprüften Commit anlegen, beispielsweise `v0.30.0-month-table.2`.
+   geprüften Commit anlegen, beispielsweise `v0.30.0-month-table.3`.
 5. Nach dem Veröffentlichen baut `.github/workflows/release.yml` das Bundle und
    hängt `ha-family-board-card-month-table.js` an das Release. Den erfolgreichen Workflow
    und das Asset prüfen, bevor die HACS-Installation empfohlen wird.

@@ -86,6 +86,7 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   hour_width?: number; // px per hour in the timeline view. default 96
   fit_height?: boolean; // shrink the day view so start..end fits without scroll
   full_height?: boolean; // stretch the board to the bottom of the screen (wall tablet)
+  month_table_full_height?: boolean; // show every month-table row without an internal vertical scroll. default false
   col_min_width?: number; // min px per person column before horizontal scroll. default 120
   event_size?: number; // event title font size in px (editor slider -> --fb-event-size)
   radius?: number; // corner radius of event blocks in px (-> --fb-radius)
@@ -2404,7 +2405,11 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     const cols = `${month ? 92 : 70}px repeat(${shown.length}, minmax(110px, 1fr))`;
     return html`
       <div class="weekhead">${month ? this._monthNav() : this._weekNav()}</div>
-      <div class="weekwrap ${month ? "month-table" : ""}">
+      <div
+        class="weekwrap ${month ? "month-table" : ""} ${
+          month && this._config.month_table_full_height ? "full-month" : ""
+        }"
+      >
         <div class="weekgrid" style="grid-template-columns:${cols}">
           <div class="corner"></div>
           ${shown.map(
@@ -4640,6 +4645,9 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
       overflow: auto;
       max-height: 60vh;
     }
+    .month-table.full-month {
+      max-height: none;
+    }
     .month-table .wday {
       flex-direction: column;
       justify-content: center;
@@ -4925,7 +4933,7 @@ if (!customElements.get("family-board-card-month-table")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.30.0-month-table.2 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.30.0-month-table.3 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );
