@@ -1,7 +1,7 @@
 # Family Board Card mit Monatstabelle
 
 Dieser Fork von [renespeaker/ha-family-board-card](https://github.com/renespeaker/ha-family-board-card) basiert auf Upstream-Version 0.30.0.
-Version des Forks: **0.30.0-month-table.1**.
+Version des Forks: **0.30.0-month-table.2**.
 
 ## Neue Ansicht
 
@@ -26,14 +26,13 @@ behalten ihre bisherige Auswahl. Die Monatstabelle ist auch im Editor auswählba
 ## Installation einer separaten Testdatei
 
 1. Entpacke dieses ZIP. Die fertige Datei liegt unter
-   **`dist/ha-family-board-card.js`**. Du musst sie nicht selbst kompilieren.
-2. Kopiere sie nach **`/config/www/family-board-month-table.js`** auf deinem
+   **`dist/ha-family-board-card-month-table.js`**. Du musst sie nicht selbst kompilieren.
+2. Kopiere sie nach **`/config/www/ha-family-board-card-month-table.js`** auf deinem
    Home-Assistant-System. Lege `www` an, falls es noch nicht existiert.
-3. Sichere den bisherigen Ressourcen-Eintrag der Originalkarte. Ersetze ihn
-   in den Dashboard-Ressourcen durch:
+3. Ergänze in den Dashboard-Ressourcen die eigene Datei des Forks:
 
    ```yaml
-   url: /local/family-board-month-table.js?v=0.30.0-month-table.1
+   url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.2
    type: module
    ```
 
@@ -41,16 +40,22 @@ behalten ihre bisherige Auswahl. Die Monatstabelle ist auch im Editor auswählba
    Die Originalkarte wird bei einer HACS-Installation üblicherweise über
    `/hacsfiles/ha-family-board-card/ha-family-board-card.js` geladen.
 
-   **Es darf nur eine der beiden Versionen als Ressource geladen werden:**
-   Beide registrieren `custom:family-board-card`. Zwei gleichzeitig geladene
-   Versionen können die neue Ansicht verhindern oder Registrierungsfehler auslösen.
-   Du musst die vorhandene HACS-Datei dafür nicht überschreiben.
+   **Beide Ressourcen dürfen gleichzeitig geladen werden.** Der Fork verwendet
+   `custom:family-board-card-month-table` und einen eigenen Editor. Das Original
+   verwendet weiterhin `custom:family-board-card`. Behalte seinen Eintrag bei.
+
+   Beim Umstieg von Fork-Version `.1` den alten Fork-Eintrag mit
+   `/local/family-board-month-table.js` oder
+   `/hacsfiles/ha-family-board-card-month-table/ha-family-board-card.js` entfernen.
+   Dieses alte Bundle belegt noch den Namen des Originals.
 4. Lade den Home-Assistant-Browser vollständig neu. Bei Bedarf Browsercache
    bzw. Frontendcache der Companion-App aktualisieren. Die Browserkonsole
-   zeigt bei erfolgreichem Laden `v0.30.0-month-table.1`.
-5. Ergänze in deiner vorhandenen Kartenkonfiguration:
+   zeigt bei erfolgreichem Laden `v0.30.0-month-table.2`.
+5. Kopiere für einen direkten Vergleich deine vorhandene Karte und ändere in
+   der Kopie den Typ und die Ansicht:
 
    ```yaml
+   type: custom:family-board-card-month-table
    view: month_table
    views:
      - day
@@ -68,7 +73,7 @@ behalten ihre bisherige Auswahl. Die Monatstabelle ist auch im Editor auswählba
 Ersetze die Kalender-Entitäten durch die tatsächlichen Namen deiner Kalender.
 
 ```yaml
-type: custom:family-board-card
+type: custom:family-board-card-month-table
 title: Familienplaner
 view: month_table
 views:
@@ -94,12 +99,17 @@ persons:
 Für ausschließlich diese Ansicht: `view: month_table` und `views: [month_table]`.
 Dann gibt es keinen Wechsel zur Tagesansicht; die Termin-Dialoge bleiben nutzbar.
 
-## Wieder zur Originalkarte wechseln
+## Original und Fork vergleichen
 
-Stelle den gesicherten Ressourcen-Eintrag wieder her und entferne `month_table`
-aus `view:` und `views:`. Lade anschließend das Frontend vollständig neu.
-Der getrennte Dateiname hält die Erweiterung unabhängig von der Originaldatei;
-HACS-Updates aktualisieren diese lokale Kopie nicht automatisch.
+Die Originalkarte behält `type: custom:family-board-card`. Die zweite Karte
+verwendet `type: custom:family-board-card-month-table` und `view: month_table`.
+Beide können dieselben `persons:`-Einträge nutzen und im selben Dashboard
+nebeneinander stehen. Bearbeitete Kalendertermine sind gemeinsame Daten und
+erscheinen nach dem Neuladen in beiden Karten.
+
+Zum Entfernen des Forks seine Karte und seinen Ressourcen-Eintrag entfernen.
+Die Originalkarte bleibt unabhängig davon nutzbar. HACS-Updates aktualisieren
+eine manuell unter `/local/` installierte Kopie nicht automatisch.
 
 ## Quellcode und Prüfung
 

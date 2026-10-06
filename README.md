@@ -1,13 +1,13 @@
 # Family Board Card – Month Table
 
-This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.30.0**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` while keeping the original views and configuration compatible.
+This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.30.0**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` and registers a separate card, `custom:family-board-card-month-table`. You can load both cards together and compare them using the same calendar configuration.
 
-**Fork version: `0.30.0-month-table.1`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork version: `0.30.0-month-table.2`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Enable the month table
 
 ```yaml
-type: custom:family-board-card
+type: custom:family-board-card-month-table
 view: month_table
 views: [day, week, month, month_table, agenda]
 persons:
@@ -84,36 +84,38 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Compact mode** – one switch (`compact`) for smaller fonts and tighter spacing instead of adjusting three sliders.
 - **People hidden on start** – `hidden: true` per person; the column starts collapsed and a click on the header brings it back.
 
-> Status: **v0.30.0-month-table.1 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
+> Status: **v0.30.0-month-table.2 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
 
 ## Installation
 
 ### Manual installation
 
-Use `dist/ha-family-board-card.js` from this fork, or build it with `npm ci && npm run build`. Copy it to `/config/www/family-board-month-table.js` and add this dashboard resource:
+Use `dist/ha-family-board-card-month-table.js` from this fork, or build it with `npm ci && npm run build`. Copy it to `/config/www/ha-family-board-card-month-table.js` and add this dashboard resource:
 
 ```yaml
-url: /local/family-board-month-table.js?v=0.30.0-month-table.1
+url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.2
 type: module
 ```
 
-**Load only one version:** this fork keeps `custom:family-board-card` for configuration compatibility. Replace the original card's resource entry; loading both versions causes custom-element registration conflicts. Reload the browser/frontend cache after changing resources.
+**Keep the original resource:** this fork registers its own card and editor, so both resources can be loaded together. Original cards use `custom:family-board-card`; fork cards use `custom:family-board-card-month-table`. Reload the browser/frontend cache after adding the new resource.
+
+**Upgrading from preview `.1`:** remove the old fork resource ending in `family-board-month-table.js` or `/ha-family-board-card-month-table/ha-family-board-card.js`, add the new resource above, and change only the fork cards to `type: custom:family-board-card-month-table`. Keep (or restore) the upstream resource `/hacsfiles/ha-family-board-card/ha-family-board-card.js`. The old `.1` fork bundle still occupies the original card's element name and must no longer be loaded.
 
 ### HACS custom repository
 
-Use this fork as a **custom repository**, not the upstream entry in the default store. Once a release with the `ha-family-board-card.js` asset is published here:
+Use this fork as a **custom repository** alongside the upstream entry in the default store:
 
 1. In HACS, open **Custom repositories** and add `https://github.com/HartLander/ha-family-board-card-month-table` with category **Dashboard** (called **Lovelace/plugin** in some versions).
 2. Install **Family Board Card – Month Table**.
-3. Verify that the dashboard resource is `/hacsfiles/ha-family-board-card-month-table/ha-family-board-card.js` with type `module`, and remove the original card's resource entry.
-4. Add `type: custom:family-board-card` with `view: month_table`.
+3. Verify that the dashboard resource is `/hacsfiles/ha-family-board-card-month-table/ha-family-board-card-month-table.js` with type `module`. Keep the original card's resource for parallel use.
+4. Add `type: custom:family-board-card-month-table` with `view: month_table`.
 
-Until the fork has a release, use the manual installation above. Maintainer release notes: [docs/HACS_STORE.md](docs/HACS_STORE.md).
+For pre-release versions, enable beta/pre-release downloads in HACS. Maintainer release notes: [docs/HACS_STORE.md](docs/HACS_STORE.md).
 
 ## Configuration
 
 ```yaml
-type: custom:family-board-card
+type: custom:family-board-card-month-table
 title: Family board # optional, custom card title
 view: day           # now | day | timeline | week | month | month_table | agenda
 time_grid: 30       # 15 | 30 | 60
@@ -216,7 +218,7 @@ The card picks up the theme's colors and fonts automatically. For fine-tuning th
 Example (card-mod):
 
 ```yaml
-type: custom:family-board-card
+type: custom:family-board-card-month-table
 card_mod:
   style: |
     :host {
@@ -244,14 +246,14 @@ Want another language? Add a dictionary to [`src/localize.ts`](src/localize.ts) 
 
 ```bash
 npm install
-npm run build        # builds dist/ha-family-board-card.js
+npm run build        # builds dist/ha-family-board-card-month-table.js
 npm run watch        # rebuild on change
 npm run lint         # tsc --noEmit (typecheck)
 npm test             # Vitest (event logic)
 npm run format       # Prettier
 ```
 
-Fast loop against a running HA instance: copy `dist/ha-family-board-card.js` to `config/www/` and hard-reload the page.
+Fast loop against a running HA instance: copy `dist/ha-family-board-card-month-table.js` to `config/www/` and hard-reload the page.
 
 Testing happens on two levels:
 
