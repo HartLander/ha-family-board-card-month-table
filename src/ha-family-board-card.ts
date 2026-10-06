@@ -87,6 +87,12 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   fit_height?: boolean; // shrink the day view so start..end fits without scroll
   full_height?: boolean; // stretch the board to the bottom of the screen (wall tablet)
   month_table_full_height?: boolean; // show every month-table row without an internal vertical scroll. default false
+  month_table_inline_date?: boolean; // weekday and date on one line. default false
+  month_table_compact_header?: boolean; // avatar beside the person's name. default false
+  month_table_font_size?: number; // base font in px; event text scales with it. 10..22, default 12.5
+  month_table_row_height?: number; // minimum cell content height in px. 16..96, default 48
+  month_table_row_padding?: number; // vertical cell padding in px. 0..12, default 4
+  month_table_event_gap?: number; // vertical gap between event chips in px. 0..12, default 3
   col_min_width?: number; // min px per person column before horizontal scroll. default 120
   event_size?: number; // event title font size in px (editor slider -> --fb-event-size)
   radius?: number; // corner radius of event blocks in px (-> --fb-radius)
@@ -405,6 +411,21 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     } else {
       this.style.removeProperty("--fb-radius");
       this.style.removeProperty("--fb-radius-sm");
+    }
+    // Month-only tokens: omitted/invalid values restore the existing theme and
+    // event-size defaults. Clamp YAML values to the editor's slider ranges.
+    for (const [key, token, min, max] of [
+      ["month_table_font_size", "--fb-month-font-size", 10, 22],
+      ["month_table_row_height", "--fb-month-row-height", 16, 96],
+      ["month_table_row_padding", "--fb-month-row-padding", 0, 12],
+      ["month_table_event_gap", "--fb-month-event-gap", 0, 12],
+    ] as const) {
+      const value = config[key];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        this.style.setProperty(token, `${Math.max(min, Math.min(value, max))}px`);
+      } else {
+        this.style.removeProperty(token);
+      }
     }
     const pastOp = Number(config.past_opacity);
     if (Number.isFinite(pastOp) && pastOp >= 10 && pastOp <= 100) {
@@ -2402,12 +2423,15 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
           this._config.hide_empty_persons !== true || events.some((e) => e.personIdx === i),
       );
     const shown = people.length > 0 ? people : this._persons.map((p, i) => ({ p, i }));
-    const cols = `${month ? 92 : 70}px repeat(${shown.length}, minmax(110px, 1fr))`;
+    // Let larger/inline dates widen their column instead of clipping the text.
+    const cols = `${month ? "max-content" : "70px"} repeat(${shown.length}, minmax(110px, 1fr))`;
     return html`
       <div class="weekhead">${month ? this._monthNav() : this._weekNav()}</div>
       <div
         class="weekwrap ${month ? "month-table" : ""} ${
           month && this._config.month_table_full_height ? "full-month" : ""
+        } ${month && this._config.month_table_inline_date ? "inline-date" : ""} ${
+          month && this._config.month_table_compact_header ? "compact-header" : ""
         }"
       >
         <div class="weekgrid" style="grid-template-columns:${cols}">
@@ -2446,8 +2470,16 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
                   }
                 }}
               >
-                <b>${short[month ? (dateFor(d).getDay() - this._firstDayJs + 7) % 7 : d]}</b>
-                ${month ? html`<span>${toLocalDate(dateFor(d)).slice(8)}.${toLocalDate(dateFor(d)).slice(5, 7)}.</span>` : nothing}${this._weatherChip(dateFor(d), "short")}
+                ${
+                  month
+                    ? html`<span class="month-date">
+                        <b>${short[(dateFor(d).getDay() - this._firstDayJs + 7) % 7]}</b>
+                        <span
+                          >${toLocalDate(dateFor(d)).slice(8)}.${toLocalDate(dateFor(d)).slice(5, 7)}.</span
+                        >
+                      </span>`
+                    : html`<b>${short[d]}</b>`
+                }${this._weatherChip(dateFor(d), "short")}
               </div>
               ${shown.map(({ p, i }) => {
                 const canCreate = this._personCanCreate(p);
@@ -4648,13 +4680,67 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     .month-table.full-month {
       max-height: none;
     }
+    .month-table {
+      --fb-month-chip-size: max(8px, calc(var(--fb-month-font-size) - 2px));
+      --fb-month-time-size: max(8px, calc(var(--fb-month-font-size) - 4px));
+      --fb-month-name-size: calc(var(--fb-month-font-size) - 0.5px);
+      --fb-month-weather-size: calc(var(--fb-month-font-size) - 1.5px);
+    }
     .month-table .wday {
+      box-sizing: border-box;
+      min-width: 92px;
       flex-direction: column;
       justify-content: center;
       gap: 2px;
+      padding-block: calc(var(--fb-month-row-padding, 4px) * 2);
+      font-size: var(--fb-month-font-size, 12.5px);
+    }
+    .month-date {
+      display: flex;
+      flex-direction: column;
+      align-items: inherit;
+      gap: 2px;
+      white-space: nowrap;
+    }
+    .month-table.inline-date .month-date {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 4px;
     }
     .month-table .wcell {
-      min-height: 48px;
+      min-height: var(--fb-month-row-height, 48px);
+      padding-block: var(--fb-month-row-padding, 4px);
+      gap: var(--fb-month-event-gap, 3px);
+    }
+    .month-table .wchip {
+      padding-block: max(1px, calc(var(--fb-month-row-padding, 4px) - 1px));
+    }
+    .month-table .wchip span {
+      font-size: var(--fb-month-chip-size, var(--fb-chip-size));
+    }
+    .month-table .wchip small {
+      font-size: var(--fb-month-time-size, 8.5px);
+    }
+    .month-table .wphead {
+      font-size: var(--fb-month-name-size, 12px);
+    }
+    .month-table .wphead > span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .month-table .wphead .avatar {
+      flex: none;
+    }
+    .month-table.compact-header .wphead {
+      flex-direction: row;
+      justify-content: center;
+    }
+    .month-table.compact-header .wphead .avatar {
+      width: 22px;
+      height: 22px;
+    }
+    .month-table .wx.short {
+      font-size: var(--fb-month-weather-size, 11px);
     }
     .weekgrid {
       display: grid;
@@ -4933,7 +5019,7 @@ if (!customElements.get("family-board-card-month-table")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.30.0-month-table.3 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.30.0-month-table.4 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );

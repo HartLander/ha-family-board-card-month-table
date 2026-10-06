@@ -1,7 +1,7 @@
 # Family Board Card mit Monatstabelle
 
 Dieser Fork von [renespeaker/ha-family-board-card](https://github.com/renespeaker/ha-family-board-card) basiert auf Upstream-Version 0.30.0.
-Version des Forks: **0.30.0-month-table.3**.
+Version des Forks: **0.30.0-month-table.4**.
 
 ## Neue Ansicht
 
@@ -38,6 +38,34 @@ selbst weiterhin scrollen; horizontales Scrollen bei vielen Personen bleibt mög
 Die Option gilt nur für `month_table` und ist standardmäßig ausgeschaltet.
 Mit `false` erhältst du wieder die bisherige begrenzte Höhe und fixierte Überschriften.
 
+### Monatstabelle kompakter oder größer einstellen
+
+Unter **Layout & Größe** findest du zusätzlich:
+
+- **Wochentag und Datum in einer Zeile**, z. B. `Mo 01.10.`. Wetter bleibt darunter.
+- **Avatar neben dem Namen** für flachere Personenüberschriften.
+- **Schriftgröße** (10–22 px): Datum, Namen, Termine und Uhrzeiten skalieren gemeinsam.
+- **Mindesthöhe der Zeilen** (16–96 px), zuzüglich Innenabstand.
+- **Vertikaler Innenabstand** (0–12 px) und **Abstand zwischen Terminen** (0–12 px).
+
+Beispiel für eine kompakte Monatstabelle, zusätzlich zu deiner vorhandenen Konfiguration:
+
+```yaml
+month_table_full_height: true
+month_table_inline_date: true
+month_table_compact_header: true
+month_table_font_size: 12
+month_table_row_height: 24
+month_table_row_padding: 1
+month_table_event_gap: 1
+```
+
+Zeilen mit vielen Terminen wachsen weiterhin mit, damit alle Termine erreichbar
+bleiben. Große Datumsbeschriftungen verbreitern die Datumsspalte. Die Regler
+wirken nur auf die Monatstabelle. Entferne die Werte oder nutze das vorhandene
+Zurücksetzen der Layout-Einstellungen, um die bisherigen Größen wiederherzustellen.
+Ohne `month_table_font_size` gelten weiterhin die allgemeinen Schrift- und Theme-Einstellungen.
+
 ## Installation einer separaten Testdatei
 
 1. Entpacke dieses ZIP. Die fertige Datei liegt unter
@@ -47,7 +75,7 @@ Mit `false` erhältst du wieder die bisherige begrenzte Höhe und fixierte Über
 3. Ergänze in den Dashboard-Ressourcen die eigene Datei des Forks:
 
    ```yaml
-   url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.3
+   url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.4
    type: module
    ```
 
@@ -65,7 +93,7 @@ Mit `false` erhältst du wieder die bisherige begrenzte Höhe und fixierte Über
    Dieses alte Bundle belegt noch den Namen des Originals.
 4. Lade den Home-Assistant-Browser vollständig neu. Bei Bedarf Browsercache
    bzw. Frontendcache der Companion-App aktualisieren. Die Browserkonsole
-   zeigt bei erfolgreichem Laden `v0.30.0-month-table.3`.
+   zeigt bei erfolgreichem Laden `v0.30.0-month-table.4`.
 5. Kopiere für einen direkten Vergleich deine vorhandene Karte und ändere in
    der Kopie den Typ und die Ansicht:
 

@@ -17,6 +17,11 @@ npm run check:browser  # Layout- und Barrierefreiheitsprüfungen
 Dazu gehören Barrierefreiheits-Prüfungen mit axe-core (Struktur/ARIA in jeder
 Ansicht, Kontrast der eigenen Texte, Tastatur-Bedienung).
 
+Die Monatstabelle wird außerdem mit ein- und zweizeiligem Datum, minimalen und
+maximalen Schrift-/Abstandswerten und kompakten Personenüberschriften geprüft.
+`MONTH_TABLE_DENSITY_SCREENSHOT=/tmp/month-table-compact.png` speichert beim
+Durchlauf eine Hochkantvorschau der kompakten Einstellungen.
+
 `check:browser` läuft **nicht** in der CI: es braucht einen Browser (Chromium
 über `playwright-core`, Pfad via `CHROMIUM_PATH`, Vorgabe
 `/opt/pw-browsers/chromium`). Vor einer Release-Kandidatin lohnt ein Durchlauf.
