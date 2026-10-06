@@ -1,6 +1,27 @@
-# Family Board Card
+# Family Board Card – Month Table
 
-**Deutsch** · [English](README.md)
+Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.30.0**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table`; die ursprünglichen Ansichten und vorhandenen Konfigurationen bleiben nutzbar.
+
+**Fork-Version: `0.30.0-month-table.1`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+
+## Monatstabelle aktivieren
+
+```yaml
+type: custom:family-board-card
+view: month_table
+views: [day, week, month, month_table, agenda]
+persons:
+  - name: Anna
+    calendar: calendar.anna
+  - name: Ben
+    calendar: calendar.ben
+```
+
+Die vorhandenen `persons:`-Einträge bleiben erhalten. Bei einer bestehenden `views:`-Liste muss `month_table` darin enthalten sein. Für ausschließlich diese Ansicht: `views: [month_table]`. Die neue Ansicht ist optional; bestehende Karten behalten ihre bisherige Ansichtsauswahl.
+
+Personenüberschriften und Datumsspalte bleiben beim Scrollen sichtbar. Die Tabelle bietet Monatsnavigation, Termin-Dialoge und das Anlegen von Terminen bei beschreibbaren Kalendern. `show_weekends: false` blendet Wochenenden aus; `hide_empty_persons: true` blendet Personen ohne Termine im gewählten Monat aus (sind alle leer, bleiben alle Spalten sichtbar). Ein Klick auf ein Datum öffnet die Tagesansicht, sofern aktiviert. [Ausführliche Anleitung](INSTALLATION.de.md).
+
+[English](README.md)
 
 ![Family Board Card – Tagesansicht](docs/preview-day.png)
 
@@ -21,6 +42,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 
 - **Tagesansicht** – Personen als Spalten, geteilte Zeitachse, Jetzt-Linie; **überlappende Termine** werden nebeneinander dargestellt.
 - **Wochenansicht** – Wochentage als Zeilen, Personen als Spalten, kompakte Termin-Chips.
+- **Monatstabelle** – alle Tage des gewählten Monats als Zeilen, Personen als Spalten, mit fixierten Überschriften.
 - **Monatsansicht** – klassisches Monats-Grid mit farbigen Terminen pro Person; Klick auf einen Tag springt in die Tagesansicht.
 - **Agenda-/Listenansicht** – chronologische Terminliste, nach Tagen gruppiert; ideal fürs Handy.
 - **Fällige Aufgaben** – optional zeigt das Board offene `todo.*`-Aufgaben, die heute fällig oder überfällig sind, als Chips in der Ganztagszeile und in der Agenda. Funktioniert mit jeder To-do-Integration (Apple Erinnerungen, Todoist, Google Tasks, Bring!, lokale Listen) und **braucht keine weitere Karte**; wer keine Listen zuordnet, merkt nichts davon. Abgehakt wird weiterhin dort, wo die Aufgabe herkommt.
@@ -32,7 +54,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Barrierearm** – komplett per Tastatur bedienbar (Pfeiltasten in den Tab-Leisten, der Fokus springt in den Dialog und bleibt dort bis Esc), Screenreader lesen Termine mit Titel, Uhrzeit und Person vor. In jeder Ansicht mit axe-core geprüft.
 - **Auto-Symbole** – optional bekommt jeder Termin per Stichwort ein passendes Emoji (Arzt → 🩺, Sport → 🏃, Geburtstag → 🎂, Schule → 🎒 …); eigene Regeln möglich. Titel, die schon ein Emoji haben, bleiben unberührt.
 - **Zeitstrahl-Ansicht** – Personen als Zeilen links, die Zeit läuft horizontal: Termine als Balken auf einem Zeitstrahl (Gantt-Stil); überlappende Termine stapeln sich in Unterzeilen.
-- **Ansichten wählbar** – im Editor festlegen, welche Umschalter (Jetzt/Tag/Zeitstrahl/Woche/Monat/Agenda) erscheinen.
+- **Ansichten wählbar** – im Editor festlegen, welche Umschalter (Jetzt/Tag/Zeitstrahl/Woche/Monat/Monatstabelle/Agenda) erscheinen.
 - **Wochen-Navigation** – vor/zurück blättern, ein Klick auf den Datumsbereich springt zurück zu „heute".
 - **Theme-aware** – übernimmt Farben und Schrift des aktiven Dashboard-Themes (nutzt durchgehend HA-CSS-Variablen).
 - **Konfigurierbar** – Zeitraster 15/30/60 min, Tagesfenster, Wochenende ein/aus, Einfärben nach Person oder Ort, Auto-Aktualisierung.
@@ -62,31 +84,38 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Kompakt-Modus** – ein Schalter (`compact`) für kleinere Schriften und engere Abstände, statt drei Regler einzeln zu justieren.
 - **Personen beim Start ausgeblendet** – `hidden: true` pro Person; die Spalte startet eingeklappt und ein Klick auf den Kopf holt sie zurück.
 
-> Status: **v0.30 – vollständige Familien-Tagesplanung: 6 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
+> Status: **v0.30.0-month-table.1 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
 
-## Installation (HACS)
+## Installation
 
-Die Karte ist Teil des offiziellen HACS-Stores:
+### Manuelle Installation
 
-1. HACS öffnen → nach **Family Board Card** suchen → installieren.
-2. Die Lovelace-Resource wird im Storage-Mode automatisch als `/hacsfiles/ha-family-board-card/ha-family-board-card.js` registriert (im YAML-Mode manuell eintragen).
-3. Karte aufs Dashboard setzen: `type: custom:family-board-card` – oder einfach „Family Board Card“ im Karten-Picker auswählen.
-
-### Manuell (schneller Test ohne HACS)
-
-`dist/ha-family-board-card.js` nach `config/www/` kopieren und als Resource hinzufügen:
+Verwende `dist/ha-family-board-card.js` aus diesem Fork oder baue die Datei mit `npm ci && npm run build`. Kopiere sie nach `/config/www/family-board-month-table.js` und füge diese Dashboard-Ressource hinzu:
 
 ```yaml
-url: /local/ha-family-board-card.js
+url: /local/family-board-month-table.js?v=0.30.0-month-table.1
 type: module
 ```
+
+**Nur eine Version laden:** Der Fork behält `custom:family-board-card` bei, damit vorhandene Konfigurationen weiter funktionieren. Ersetze den Ressourcen-Eintrag der Originalkarte; beide Versionen gleichzeitig verursachen Konflikte bei der Registrierung. Lade anschließend Browser bzw. Frontendcache neu.
+
+### HACS als benutzerdefiniertes Repository
+
+Verwende diesen Fork als **benutzerdefiniertes Repository**, nicht den Upstream-Eintrag im Standard-Store. Sobald hier ein Release mit der Datei `ha-family-board-card.js` veröffentlicht ist:
+
+1. In HACS unter **Benutzerdefinierte Repositories** `https://github.com/HartLander/ha-family-board-card-month-table` mit Kategorie **Dashboard** hinzufügen (je nach Version **Lovelace/plugin**).
+2. **Family Board Card – Month Table** installieren.
+3. Dashboard-Ressource `/hacsfiles/ha-family-board-card-month-table/ha-family-board-card.js` mit Typ `module` prüfen und den Ressourcen-Eintrag der Originalkarte entfernen.
+4. Karte mit `type: custom:family-board-card` und `view: month_table` hinzufügen.
+
+Bis ein Release des Forks verfügbar ist, verwende die manuelle Installation oben. Hinweise für Maintainer: [docs/HACS_STORE.md](docs/HACS_STORE.md).
 
 ## Konfiguration
 
 ```yaml
 type: custom:family-board-card
 title: Familienplan  # optional, eigener Kartentitel
-view: day            # day | week
+view: day            # now | day | timeline | week | month | month_table | agenda
 time_grid: 30        # 15 | 30 | 60
 start_hour: 6
 end_hour: 22
@@ -111,7 +140,7 @@ persons:
 |-----------------|---------|---------|--------------|
 | `persons`       | Liste   | –       | 1–10 Personen mit `name`, `person`, `calendar` (String **oder Liste**), optional `color`, `badges` (Entitäten als Chips) und `hidden` (startet eingeklappt) |
 | `persons[].tasks` | String/Liste | – | `todo.*`-Liste(n) dieser Person; heute fällige und überfällige Aufgaben erscheinen als Chips (Tagesansicht + Agenda). Ohne Angabe fragt die Karte keine Liste ab |
-| `hide_empty_persons` | boolean | `false` | Wochenansicht: Personen ohne Termine in der Woche ausblenden |
+| `hide_empty_persons` | boolean | `false` | Woche/Monatstabelle: Personen ohne Termine im Zeitraum ausblenden |
 | `show_alerts`   | boolean | `false` | Tages-Check über Tag/Zeitstrahl: Doppelbuchungen, Betreuungslücken und „niemand zuhause" als Chips |
 | `gap_min`       | number  | `60`    | Ab wie vielen Minuten eine Lücke zwischen zwei Terminen einer Person gemeldet wird (0 = aus) |
 | `show_focus`    | boolean | `false` | „Jetzt / als Nächstes"-Leiste pro Person über den Ansichten |
@@ -120,8 +149,8 @@ persons:
 | `icon_patterns` | Liste   | –       | Eigene Symbol-Regeln, z. B. `["Oma => 👵"]` |
 | `auto_return`   | number  | `0`     | Kiosk: nach X Minuten ohne Berührung zurück zur Startansicht/heute (0 = aus) |
 | `title`          | string  | –       | Eigener Kartentitel (Default: lokalisiert „Familienplan") |
-| `view`          | string  | `day`   | Startansicht: `now`, `day`, `timeline`, `week`, `month` oder `agenda` |
-| `views`         | Liste   | alle außer `now` | Welche Ansichten im Umschalter erscheinen, z. B. `[now, day, agenda]` |
+| `view`          | string  | `day`   | Startansicht: `now`, `day`, `timeline`, `week`, `month`, `month_table` oder `agenda` |
+| `views`         | Liste   | alle außer `now` und `month_table` (opt-in) | Welche Ansichten im Umschalter erscheinen, z. B. `[now, day, agenda]` |
 | `time_grid`     | number  | `30`    | Raster der Zeitleiste in Minuten |
 | `start_hour`    | number  | `6`     | Erste sichtbare Stunde |
 | `end_hour`      | number  | `22`    | Letzte sichtbare Stunde |
@@ -246,10 +275,10 @@ In der Tagesansicht eine freie Stelle in der Personenspalte anklicken öffnet de
 - [x] Kiosk-/Wandtablet-Modus (`full_height`, `fit_height`, `auto_return`, Touch-Ziele)
 - [x] Mobile-Layout (kompakte Spalten, wischbar)
 - [x] Drag & Drop zum Verschieben von Terminen (Tag **und** Zeitstrahl)
-- [x] Aufnahme in den offiziellen HACS-Store
+- [x] Monatstabelle (`month_table`) mit Unterstützung im visuellen Editor
 - [x] Lokalisierter visueller Editor (DE/EN)
 - [x] Konflikterkennung (Doppelbuchungen, Abhol-Lücken, „niemand zuhause")
 
 ## Lizenz
 
-MIT
+[MIT](LICENSE). Ursprüngliches Copyright © 2026 renespeaker. Dieser Fork erhält den Copyright- und Lizenzhinweis des Originals; die bisherige Entwicklung ist im [Upstream-Projekt](https://github.com/renespeaker/ha-family-board-card) dokumentiert.

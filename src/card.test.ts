@@ -792,3 +792,165 @@ describe("accessibility", () => {
     expect(labels).toContain("Freitag, 11. September: Abholen");
   });
 });
+
+describe("month table", () => {
+  const persons = [
+    { name: "Mama", calendar: "calendar.mama" },
+    { name: "Papa", calendar: "calendar.papa" },
+  ];
+  const config = { persons, view: "month_table" as const };
+  async function settle(el: { updateComplete: Promise<unknown> }) {
+    for (let i = 0; i < 8; i++) {
+      await vi.advanceTimersByTimeAsync(0);
+      await el.updateComplete;
+    }
+  }
+
+  it.each([
+    ["2026-10-04", 31],
+    ["2026-02-04", 28],
+    ["2028-02-04", 29],
+    ["2026-04-04", 30],
+  ])("shows exactly the days of %s, including DST months", async (now, days) => {
+    const { all, texts, root } = await mount(config, { now: `${now}T10:00:00` });
+    expect(all(".month-table .wday")).toHaveLength(days);
+    expect(all(".month-table .wcell")).toHaveLength(days * 2);
+    expect(texts(".wphead > span")).toEqual(["Mama", "Papa"]);
+    const dates = all(".wday").map((n) => n.getAttribute("aria-label"));
+    expect(new Set(dates).size).toBe(days);
+    expect(root.querySelector(".wday")?.textContent).toContain("01.");
+    expect(all(".wday")[days - 1]?.textContent).toContain(`${days}.`);
+    expect(texts("[role=tab][aria-selected=true]")).toEqual(["Monatstabelle"]);
+  });
+
+  it("fetches the full month with an exclusive end and refetches across December", async () => {
+    const { el, root, apiPaths, texts } = await mount(config, {
+      now: "2026-12-04T10:00:00",
+      calendars: { "calendar.mama": [] },
+    });
+    const range = (path: string) => {
+      const q = new URLSearchParams(path.split("?")[1]);
+      return [new Date(q.get("start")!).getTime(), new Date(q.get("end")!).getTime()];
+    };
+    expect(range(apiPaths[0])).toEqual([
+      new Date(2026, 11, 1).getTime(),
+      new Date(2027, 0, 1).getTime(),
+    ]);
+    (root.querySelector('[aria-label="Nächster Monat"]') as HTMLElement).click();
+    await settle(el);
+    expect(texts(".nav-now")).toEqual(["Januar 2027"]);
+    expect(range(apiPaths[apiPaths.length - 1])).toEqual([
+      new Date(2027, 0, 1).getTime(),
+      new Date(2027, 1, 1).getTime(),
+    ]);
+    (root.querySelector(".nav-now") as HTMLElement).click();
+    await settle(el);
+    expect(texts(".nav-now")).toEqual(["Dezember 2026"]);
+  });
+
+  it.each(["monday", "sunday"] as const)(
+    "hides actual weekends with %s week start",
+    async (first_day) => {
+      const { all } = await mount(
+        { ...config, first_day, show_weekends: false },
+        { now: "2026-10-04T10:00:00" },
+      );
+      expect(all(".wday")).toHaveLength(22);
+      expect(all(".wday").some((n) => /Samstag|Sonntag/.test(n.getAttribute("aria-label")!))).toBe(
+        false,
+      );
+    },
+  );
+
+  it("puts events in the right person's cell, including events late in the month and multi-day boundaries", async () => {
+    const { all, root, el } = await mount(config, {
+      now: "2026-10-04T10:00:00",
+      calendars: {
+        "calendar.mama": [
+          allDay("Urlaub", "2026-09-30", "2026-10-03"),
+          allDay("Mama spät", "2026-10-31", "2026-11-01"),
+        ],
+        "calendar.papa": [
+          ev("Papa spät", "14:00", "15:00", {
+            start: { dateTime: "2026-10-31T14:00:00" },
+            end: { dateTime: "2026-10-31T15:00:00" },
+          }),
+        ],
+      },
+    });
+    const cells = all(".wcell");
+    expect(cells[0].textContent).toContain("Urlaub");
+    expect(cells[2].textContent).toContain("Urlaub");
+    expect(cells[4].textContent).not.toContain("Urlaub");
+    expect(cells[60].textContent).toContain("Mama spät");
+    expect(cells[60].textContent).not.toContain("Papa spät");
+    expect(cells[61].textContent).toContain("Papa spät");
+    (cells[61].querySelector(".wchip") as HTMLElement).click();
+    await settle(el);
+    expect((root.querySelector('input[type="datetime-local"]') as HTMLInputElement).value).toBe(
+      "2026-10-31T14:00",
+    );
+  });
+
+  it("toggles people and hides empty columns across the entire month", async () => {
+    const { root, el, all } = await mount(
+      { ...config, hide_empty_persons: true },
+      {
+        now: "2026-10-04T10:00:00",
+        calendars: { "calendar.mama": [allDay("Termin", "2026-10-31", "2026-11-01")] },
+      },
+    );
+    expect(all(".wphead")).toHaveLength(1);
+    expect(all(".wchip")).toHaveLength(1);
+    (root.querySelector(".wphead") as HTMLElement).click();
+    await settle(el);
+    expect(all(".wchip")).toHaveLength(0);
+  });
+
+  it("opens the exact selected date in the day view", async () => {
+    const { all, root, el } = await mount(
+      { ...config, views: ["day", "month_table"] },
+      { now: "2026-10-04T10:00:00" },
+    );
+    (all(".wday")[30] as HTMLElement).click();
+    await settle(el);
+    expect(root.querySelector("[role=tab][aria-selected=true]")?.textContent?.trim()).toBe("Tag");
+    expect((el as any)._dateForDay((el as any)._day)).toEqual(new Date(2026, 9, 31));
+  });
+
+  it.each([25, 31])(
+    "creates an event on October %s at the correct local time without leaving the table",
+    async (day) => {
+      const { all, root, el } = await mount(
+        { ...config, views: ["month_table"] },
+        { now: "2026-10-04T10:00:00", calendars: { "calendar.mama": [] } },
+      );
+      (el.hass as any).states["calendar.mama"].attributes.supported_features = 7;
+      (el as any).requestUpdate();
+      await settle(el);
+      (all(".wcell")[(day - 1) * 2] as HTMLElement).click();
+      await settle(el);
+      expect((root.querySelector('input[type="datetime-local"]') as HTMLInputElement).value).toBe(
+        `2026-10-${day}T09:00`,
+      );
+      expect(root.querySelector(".month-table")).not.toBeNull();
+    },
+  );
+
+  it("refetches when switching from the week and back to the month table", async () => {
+    const { root, el, apiPaths, all } = await mount(
+      { ...config, views: ["week", "month", "month_table"] },
+      {
+        now: "2026-10-04T10:00:00",
+        calendars: { "calendar.mama": [allDay("Monatsende", "2026-10-31", "2026-11-01")] },
+      },
+    );
+    for (const label of ["Woche", "Monat", "Monatstabelle"]) {
+      (all("[role=tab]").find((n) => n.textContent?.trim() === label) as HTMLElement).click();
+      await settle(el);
+    }
+    expect(apiPaths).toHaveLength(4);
+    expect(all(".wday")).toHaveLength(31);
+    expect(root.querySelector(".wchip")?.textContent).toContain("Monatsende");
+  });
+});

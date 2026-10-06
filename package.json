@@ -1,7 +1,7 @@
 {
   "name": "ha-family-board-card",
-  "version": "0.30.0",
-  "description": "Family calendar / who-is-where board for Home Assistant",
+  "version": "0.30.0-month-table.1",
+  "description": "Month-table fork of renespeaker/ha-family-board-card for Home Assistant",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -32,5 +32,13 @@
     "tslib": "^2.6.2",
     "typescript": "^6.0.3",
     "vitest": "^5.0.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HartLander/ha-family-board-card-month-table.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HartLander/ha-family-board-card-month-table/issues"
+  },
+  "homepage": "https://github.com/HartLander/ha-family-board-card-month-table#readme"
 }
