@@ -19,6 +19,7 @@ const EN: Dict = {
   l_hour_width: "Timeline: width per hour",
   l_fit_height: "Auto-fit: squeeze the day so it fits without scrolling",
   l_full_height: "Full height: stretch to the bottom of the screen",
+  l_month_table_full_height: "Show the entire month in the month table",
   l_trim_hours: "Hide empty hours at the edges",
   l_col_min_width: "Min. column width per person",
   l_background_hours: "Show long events as a background band from (hrs.)",
@@ -77,6 +78,8 @@ const EN: Dict = {
   h_background_hours: "0 = off. Long all-day-ish events (after-school care …) as a subtle band",
   h_fit_height: "Compresses the day until everything is visible without scrolling",
   h_full_height: "For panel view / wall tablet",
+  h_month_table_full_height:
+    "Expands the month table to show all rows without an internal vertical scrollbar. The dashboard may still scroll on smaller screens.",
   h_trim_hours: "Shows only the hours that actually contain events",
   h_col_min_width: "Below this the board scrolls horizontally",
   h_weather_entity: "Daily forecast in the header (HA location)",
@@ -160,6 +163,7 @@ const DE: Dict = {
   l_hour_width: "Zeitstrahl: Breite pro Stunde",
   l_fit_height: "Auto-Fit: Tag ohne Scrollen einpassen",
   l_full_height: "Volle Höhe: bis zum unteren Bildschirmrand",
+  l_month_table_full_height: "In Monatsübersicht ganzen Monat anzeigen",
   l_trim_hours: "Leere Randstunden automatisch ausblenden",
   l_col_min_width: "Min. Spaltenbreite pro Person",
   l_background_hours: "Lange Termine als Hintergrund-Band ab (Std.)",
@@ -218,6 +222,8 @@ const DE: Dict = {
   h_background_hours: "0 = aus. Lange Dauertermine (OGS, Betreuung …) als dezentes Band",
   h_fit_height: "Staucht den Tag, bis alles ohne Scrollen sichtbar ist",
   h_full_height: "Für Panel-Ansicht / Wandtablet",
+  h_month_table_full_height:
+    "Zeigt alle Zeilen der Monatstabelle ohne internen vertikalen Scrollbalken. Auf kleineren Bildschirmen kann das Dashboard weiterhin scrollen.",
   h_trim_hours: "Zeigt nur die Stunden, in denen wirklich Termine liegen",
   h_col_min_width: "Darunter wird horizontal gescrollt",
   h_weather_entity: "Tages-Vorhersage im Kopf (HA-Standort)",

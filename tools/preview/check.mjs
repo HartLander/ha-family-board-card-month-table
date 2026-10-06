@@ -43,13 +43,14 @@ async function open({
   lang = "de",
   dark = false,
   width = 1400,
+  height = 900,
   locale = "de-DE",
   slim = false,
   timezoneId,
   time,
   compare,
 }) {
-  const page = await browser.newPage({ viewport: { width, height: 900 }, locale, timezoneId });
+  const page = await browser.newPage({ viewport: { width, height }, locale, timezoneId });
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
   const at = time ?? new Date();
@@ -159,6 +160,68 @@ for (const locale of ["de-DE", "en-US"]) {
     repeated.length ? `doppelt: ${repeated.join(", ")}` : `${grid.length} Zellen`,
   );
   check("keine Konsolenfehler (Monat, Zeitumstellung)", errors.length === 0, errors.join(" | "));
+  await page.close();
+}
+
+/* --- optional full month: every row fits inside the card ------------ */
+for (const [date, days, width, height] of [
+  ["2026-10-06", 31, 1080, 1920],
+  ["2026-04-06", 30, 1400, 900],
+  ["2026-02-06", 28, 400, 900],
+  ["2028-02-06", 29, 1080, 1920],
+]) {
+  const { page, errors } = await open({
+    view: "month_table", width, height, dark: true, slim: true,
+    timezoneId: "Europe/Berlin", time: new Date(`${date}T10:00:00+01:00`),
+  });
+  const setConfig = (patch) => page.evaluate(async (patch) => {
+    const card = document.querySelector("family-board-card-month-table");
+    card.setConfig({ ...card._config, ...patch });
+    await card.updateComplete;
+  }, patch);
+  const measure = () => page.evaluate(() => {
+    const card = document.querySelector("family-board-card-month-table");
+    const wrap = card.renderRoot.querySelector(".weekwrap");
+    const rows = [...wrap.querySelectorAll(".wday")];
+    const bottom = wrap.getBoundingClientRect().top + wrap.clientHeight;
+    return {
+      days: rows.length,
+      verticalOverflow: wrap.scrollHeight - wrap.clientHeight,
+      lastRowInside: rows.at(-1).getBoundingClientRect().bottom <= bottom + 1,
+      eventsInside: [...wrap.querySelectorAll(".wchip")].every(chip =>
+        chip.getBoundingClientRect().bottom <= chip.parentElement.getBoundingClientRect().bottom + 1),
+      horizontalOverflow: wrap.scrollWidth - wrap.clientWidth,
+      outerOverflow: card.scrollWidth - card.clientWidth,
+    };
+  });
+  const label = `${days} Tage, ${width}×${height}`;
+  check(`Monat scrollt standardmäßig (${label})`, (await measure()).verticalOverflow > 0);
+  await setConfig({ month_table_full_height: true });
+  const full = await measure();
+  check(`ganzer Monat ohne inneren Scrollbalken (${label})`,
+    full.days === days && full.verticalOverflow <= 1 && full.lastRowInside && full.eventsInside,
+    JSON.stringify(full));
+  if (width === 400) {
+    check("ganzer Monat behält horizontales Scrollen auf dem Handy",
+      full.horizontalOverflow > 0 && full.outerOverflow <= 0);
+  }
+  if (date === "2026-10-06") {
+    if (process.env.MONTH_TABLE_SCREENSHOT) {
+      await page.screenshot({ path: process.env.MONTH_TABLE_SCREENSHOT, fullPage: true });
+    }
+    await setConfig({ show_weekends: false });
+    const weekdays = await measure();
+    check("ganzer Monat beachtet den Wochenendfilter",
+      weekdays.days === 22 && weekdays.verticalOverflow <= 1 && weekdays.lastRowInside);
+    await setConfig({ show_weekends: true });
+  }
+  await setConfig({ month_table_full_height: false });
+  check(`Monats-Scrollansicht wieder einschaltbar (${label})`, (await measure()).verticalOverflow > 0);
+  await setConfig({ view: "week", month_table_full_height: true });
+  const weekHeight = await page.evaluate(() =>
+    getComputedStyle(document.querySelector("family-board-card-month-table").renderRoot.querySelector(".weekwrap")).maxHeight);
+  check(`Wochenansicht behält Höhenbegrenzung (${label})`, Math.abs(parseFloat(weekHeight) - height * 0.6) <= 1);
+  check(`keine Konsolenfehler (Monatshöhe, ${label})`, errors.length === 0, errors.join(" | "));
   await page.close();
 }
 

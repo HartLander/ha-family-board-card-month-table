@@ -1,6 +1,6 @@
 {
   "name": "ha-family-board-card-month-table",
-  "version": "0.30.0-month-table.2",
+  "version": "0.30.0-month-table.3",
   "description": "Month-table fork of renespeaker/ha-family-board-card for Home Assistant",
   "type": "module",
   "license": "MIT",
