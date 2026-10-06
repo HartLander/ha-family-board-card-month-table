@@ -154,7 +154,20 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       { name: "full_height", selector: { boolean: {} } },
     );
     if (hasMonthTable) {
-      layout.push({ name: "month_table_full_height", selector: { boolean: {} } });
+      layout.push(
+        { name: "month_table_full_height", selector: { boolean: {} } },
+        { name: "month_table_inline_date", selector: { boolean: {} } },
+        { name: "month_table_compact_header", selector: { boolean: {} } },
+        ...[
+          { name: "month_table_font_size", min: 10, max: 22, step: 0.5 },
+          { name: "month_table_row_height", min: 16, max: 96, step: 1 },
+          { name: "month_table_row_padding", min: 0, max: 12, step: 1 },
+          { name: "month_table_event_gap", min: 0, max: 12, step: 1 },
+        ].map(({ name, ...range }) => ({
+          name,
+          selector: { number: { ...range, mode: "slider", unit_of_measurement: "px" } },
+        })),
+      );
     }
 
     const extras: unknown[] = [
@@ -329,6 +342,12 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         "full_height",
         "fit_height",
         "month_table_full_height",
+        "month_table_inline_date",
+        "month_table_compact_header",
+        "month_table_font_size",
+        "month_table_row_height",
+        "month_table_row_padding",
+        "month_table_event_gap",
         "trim_hours",
         "auto_return",
         "col_min_width",

@@ -799,6 +799,22 @@ describe("month table", () => {
     { name: "Papa", calendar: "calendar.papa" },
   ];
   const config = { persons, view: "month_table" as const };
+  it.each([
+    ["month_table_font_size", "--fb-month-font-size", 10, 22],
+    ["month_table_row_height", "--fb-month-row-height", 16, 96],
+    ["month_table_row_padding", "--fb-month-row-padding", 0, 12],
+    ["month_table_event_gap", "--fb-month-event-gap", 0, 12],
+  ] as const)("bounds and clears the %s setting from YAML", async (key, token, min, max) => {
+    const { el } = await mount({ ...config, [key]: -10 });
+    expect(el.style.getPropertyValue(token)).toBe(`${min}px`);
+    el.setConfig({ ...config, [key]: 1000 });
+    expect(el.style.getPropertyValue(token)).toBe(`${max}px`);
+    for (const value of [NaN, Infinity, "invalid", null, undefined]) {
+      el.setConfig({ ...config, [key]: value });
+      expect(el.style.getPropertyValue(token)).toBe("");
+    }
+  });
+
   async function settle(el: { updateComplete: Promise<unknown> }) {
     for (let i = 0; i < 8; i++) {
       await vi.advanceTimersByTimeAsync(0);

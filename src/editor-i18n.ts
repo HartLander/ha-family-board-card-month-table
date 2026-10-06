@@ -20,6 +20,12 @@ const EN: Dict = {
   l_fit_height: "Auto-fit: squeeze the day so it fits without scrolling",
   l_full_height: "Full height: stretch to the bottom of the screen",
   l_month_table_full_height: "Show the entire month in the month table",
+  l_month_table_inline_date: "Month table: weekday and date on one line",
+  l_month_table_compact_header: "Month table: avatar beside name",
+  l_month_table_font_size: "Month table: font size",
+  l_month_table_row_height: "Month table: minimum row height",
+  l_month_table_row_padding: "Month table: vertical padding",
+  l_month_table_event_gap: "Month table: gap between events",
   l_trim_hours: "Hide empty hours at the edges",
   l_col_min_width: "Min. column width per person",
   l_background_hours: "Show long events as a background band from (hrs.)",
@@ -80,6 +86,15 @@ const EN: Dict = {
   h_full_height: "For panel view / wall tablet",
   h_month_table_full_height:
     "Expands the month table to show all rows without an internal vertical scrollbar. The dashboard may still scroll on smaller screens.",
+  h_month_table_inline_date: "e.g. Mon 01.10. Weather stays below; the date column grows if needed",
+  h_month_table_compact_header: "Shorter person headers with the avatar and name side by side",
+  h_month_table_font_size:
+    "Base size for dates and names; event text and times scale with it. Empty keeps existing font settings (dates: 12.5 px)",
+  h_month_table_row_height:
+    "Minimum content height, plus padding. Rows with many events grow as needed. Default: 48 px",
+  h_month_table_row_padding:
+    "Less padding makes date rows and event chips more compact. Default: 4 px",
+  h_month_table_event_gap: "Vertical space between events in a cell. Default: 3 px",
   h_trim_hours: "Shows only the hours that actually contain events",
   h_col_min_width: "Below this the board scrolls horizontally",
   h_weather_entity: "Daily forecast in the header (HA location)",
@@ -164,6 +179,12 @@ const DE: Dict = {
   l_fit_height: "Auto-Fit: Tag ohne Scrollen einpassen",
   l_full_height: "Volle Höhe: bis zum unteren Bildschirmrand",
   l_month_table_full_height: "In Monatsübersicht ganzen Monat anzeigen",
+  l_month_table_inline_date: "Monatstabelle: Wochentag und Datum in einer Zeile",
+  l_month_table_compact_header: "Monatstabelle: Avatar neben dem Namen",
+  l_month_table_font_size: "Monatstabelle: Schriftgröße",
+  l_month_table_row_height: "Monatstabelle: Mindesthöhe der Zeilen",
+  l_month_table_row_padding: "Monatstabelle: Vertikaler Innenabstand",
+  l_month_table_event_gap: "Monatstabelle: Abstand zwischen Terminen",
   l_trim_hours: "Leere Randstunden automatisch ausblenden",
   l_col_min_width: "Min. Spaltenbreite pro Person",
   l_background_hours: "Lange Termine als Hintergrund-Band ab (Std.)",
@@ -224,6 +245,16 @@ const DE: Dict = {
   h_full_height: "Für Panel-Ansicht / Wandtablet",
   h_month_table_full_height:
     "Zeigt alle Zeilen der Monatstabelle ohne internen vertikalen Scrollbalken. Auf kleineren Bildschirmen kann das Dashboard weiterhin scrollen.",
+  h_month_table_inline_date:
+    "Z. B. Mo 01.10. Wetter bleibt darunter; die Datumsspalte wächst bei Bedarf mit",
+  h_month_table_compact_header: "Flachere Personenüberschriften mit Avatar und Name nebeneinander",
+  h_month_table_font_size:
+    "Grundgröße für Datum und Namen; Termine und Uhrzeiten skalieren mit. Leer behält vorhandene Schriftgrößen bei (Datum: 12,5 px)",
+  h_month_table_row_height:
+    "Mindesthöhe des Inhalts, zuzüglich Innenabstand. Bei vielen Terminen wächst die Zeile mit. Standard: 48 px",
+  h_month_table_row_padding:
+    "Weniger Innenabstand macht Datumszeilen und Terminblöcke kompakter. Standard: 4 px",
+  h_month_table_event_gap: "Vertikaler Abstand zwischen Terminen in einer Zelle. Standard: 3 px",
   h_trim_hours: "Zeigt nur die Stunden, in denen wirklich Termine liegen",
   h_col_min_width: "Darunter wird horizontal gescrollt",
   h_weather_entity: "Tages-Vorhersage im Kopf (HA-Standort)",

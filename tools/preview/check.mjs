@@ -30,7 +30,9 @@ const server = createServer(async (req, res) => {
 await new Promise((ok) => server.listen(PORT, "127.0.0.1", ok));
 
 const failures = [];
+let checks = 0;
 const check = (name, ok, detail = "") => {
+  checks++;
   console.log(`${ok ? "  ok  " : " FAIL "} ${name}${detail ? ` — ${detail}` : ""}`);
   if (!ok) failures.push(name);
 };
@@ -222,6 +224,99 @@ for (const [date, days, width, height] of [
     getComputedStyle(document.querySelector("family-board-card-month-table").renderRoot.querySelector(".weekwrap")).maxHeight);
   check(`Wochenansicht behält Höhenbegrenzung (${label})`, Math.abs(parseFloat(weekHeight) - height * 0.6) <= 1);
   check(`keine Konsolenfehler (Monatshöhe, ${label})`, errors.length === 0, errors.join(" | "));
+  await page.close();
+}
+
+/* --- month-table typography and spacing stay usable at both extremes */
+for (const [width, height, lang] of [[1080, 1920, "de"], [400, 900, "en"]]) {
+  const { page, errors } = await open({
+    view: "month_table", width, height, lang, locale: lang === "de" ? "de-DE" : "en-US",
+    slim: true, dark: true, time: new Date("2026-10-06T10:00:00+02:00"), timezoneId: "Europe/Berlin",
+  });
+  const setConfig = (patch) => page.evaluate(async patch => {
+    const card = document.querySelector("family-board-card-month-table");
+    card.setConfig({ ...card._config, ...patch });
+    await card.updateComplete;
+  }, patch);
+  const measure = () => page.evaluate(() => {
+    const card = document.querySelector("family-board-card-month-table");
+    const root = card.renderRoot;
+    const wrap = root.querySelector(".weekwrap");
+    const rect = el => el.getBoundingClientRect();
+    const font = selector => parseFloat(getComputedStyle(root.querySelector(selector)).fontSize);
+    const labels = [...root.querySelectorAll(".month-date")];
+    const fits = labels.every(label => {
+      const box = rect(label.parentElement);
+      return [...label.children].every(el => rect(el).left >= box.left && rect(el).right <= box.right);
+    });
+    const cells = [...root.querySelectorAll(".wcell")];
+    return {
+      tableHeight: rect(wrap).height,
+      headerHeight: rect(root.querySelector(".wphead")).height,
+      days: root.querySelectorAll(".wday").length,
+      inline: labels.every(label => Math.abs(rect(label.children[0]).top - rect(label.children[1]).top) < 2),
+      stacked: labels.every(label => rect(label.children[0]).bottom <= rect(label.children[1]).top),
+      fits,
+      dateFont: font(".wday"), nameFont: font(".wphead"),
+      eventFont: font(".wchip span"), timeFont: font(".wchip small"),
+      chipCount: root.querySelectorAll(".wchip").length,
+      emptyHeight: rect(cells.find(cell => !cell.querySelector(".wchip"))).height,
+      eventsInside: cells.every(cell => [...cell.querySelectorAll(".wchip")].every(chip =>
+        rect(chip).bottom <= rect(cell).bottom && rect(chip).height >= rect(chip.querySelector("span")).height)),
+      overflow: wrap.scrollHeight - wrap.clientHeight,
+      outerOverflow: card.scrollWidth - card.clientWidth,
+    };
+  });
+  const label = `${width}px, ${lang}`;
+  await setConfig({ month_table_full_height: true, event_size: 16 });
+  const original = await measure();
+  check(`Datum bleibt standardmäßig zweizeilig (${label})`, original.stacked);
+  check(`vorhandene Terminschrift bleibt erhalten (${label})`, original.eventFont === 15);
+  await setConfig({ month_table_inline_date: true });
+  const inline = await measure();
+  check(`Wochentag und Datum passen in eine Zeile (${label})`, inline.inline && inline.fits);
+  await setConfig({
+    month_table_compact_header: true, month_table_font_size: 12,
+    month_table_row_height: 24, month_table_row_padding: 1, month_table_event_gap: 1,
+  });
+  const compact = await measure();
+  check(`Regler sparen vertikalen Platz (${label})`,
+    compact.tableHeight < original.tableHeight * 0.75 && compact.headerHeight < original.headerHeight,
+    `${Math.round(original.tableHeight)}px -> ${Math.round(compact.tableHeight)}px`);
+  check(`Schriftregler skaliert Datum, Namen, Termine und Zeit (${label})`,
+    compact.dateFont === 12 && compact.nameFont === 11.5 && compact.eventFont === 10 && compact.timeFont === 8);
+  check(`kompakter Monat zeigt alle Tage und Termine (${label})`,
+    compact.days === 31 && compact.chipCount === original.chipCount && compact.eventsInside && compact.overflow <= 1);
+  if (width === 1080 && process.env.MONTH_TABLE_DENSITY_SCREENSHOT) {
+    await page.screenshot({ path: process.env.MONTH_TABLE_DENSITY_SCREENSHOT, fullPage: true });
+  }
+  await setConfig({
+    month_table_font_size: 22, month_table_row_height: 96,
+    month_table_row_padding: 12, month_table_event_gap: 12,
+  });
+  const large = await measure();
+  check(`große Datumsbeschriftung bleibt vollständig einzeilig (${label})`, large.inline && large.fits && large.outerOverflow === 0, JSON.stringify(large));
+  check(`große Zeilen wachsen ohne abgeschnittene Termine (${label})`,
+    large.emptyHeight > compact.emptyHeight && large.dateFont === 22 && large.eventFont === 20 && large.eventsInside && large.overflow <= 1);
+  await setConfig({
+    month_table_font_size: 10, month_table_row_height: 16,
+    month_table_row_padding: 0, month_table_event_gap: 0,
+  });
+  const small = await measure();
+  check(`kleinste Abstände schneiden keine Inhalte ab (${label})`,
+    small.emptyHeight < compact.emptyHeight && small.eventsInside && small.inline && small.fits && small.overflow <= 1);
+  await setConfig({
+    month_table_inline_date: false, month_table_compact_header: false,
+    month_table_font_size: undefined, month_table_row_height: undefined,
+    month_table_row_padding: undefined, month_table_event_gap: undefined,
+  });
+  const restored = await measure();
+  check(`Entfernen der Reglerwerte stellt bisheriges Layout wieder her (${label})`,
+    restored.stacked && restored.eventFont === 15 && restored.tableHeight === original.tableHeight && restored.headerHeight === original.headerHeight);
+  await setConfig({ view: "week", month_table_font_size: 22, month_table_row_padding: 0, month_table_row_height: 16 });
+  const week = await measure();
+  check(`Monatsregler ändern die Wochenansicht nicht (${label})`, week.dateFont === 12.5 && week.eventFont === 15 && week.emptyHeight === 79);
+  check(`keine Konsolenfehler (Monatsregler, ${label})`, errors.length === 0, errors.join(" | "));
   await page.close();
 }
 
@@ -428,5 +523,5 @@ if (UPSTREAM_BUNDLE) {
 
 await browser.close();
 server.close();
-console.log(failures.length ? `\n${failures.length} Prüfung(en) fehlgeschlagen` : "\nalles in Ordnung");
+console.log(failures.length ? `\n${failures.length} von ${checks} Prüfungen fehlgeschlagen` : `\nAlle ${checks} Prüfungen erfolgreich`);
 process.exit(failures.length ? 1 : 0);

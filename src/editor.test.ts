@@ -11,7 +11,13 @@ beforeAll(async () => {
   await import("./editor");
 });
 
-type Schema = { name: string; type?: string; title?: string; schema?: Schema[] };
+type Schema = {
+  name: string;
+  type?: string;
+  title?: string;
+  schema?: Schema[];
+  selector?: { number?: { mode?: string; min?: number; max?: number; step?: number } };
+};
 type Form = HTMLElement & {
   computeLabel: (s: { name: string }) => string;
   computeHelper: (s: { name: string }) => string | undefined;
@@ -231,5 +237,68 @@ describe("full month layout option", () => {
       el.setConfig(config);
       await el.updateComplete;
     }
+  });
+});
+
+describe("month table density controls", () => {
+  const density = {
+    month_table_inline_date: true,
+    month_table_compact_header: true,
+    month_table_font_size: 14,
+    month_table_row_height: 24,
+    month_table_row_padding: 0,
+    month_table_event_gap: 0,
+  };
+
+  it("offers localized sliders and switches only for the month table", async () => {
+    for (const lang of ["de", "en"]) {
+      const { settings } = await mountEditor({ views: ["month_table"] }, lang);
+      const layout = settings.schema.find((s) => s.title?.includes("Layout"))!.schema!;
+      for (const [name, value] of Object.entries(density)) {
+        const field = layout.find((s) => s.name === name)!;
+        expect(field).toBeDefined();
+        expect(settings.computeLabel(field)).not.toBe(name);
+        expect(settings.computeHelper(field)).toBeTruthy();
+        if (typeof value === "number") expect(field.selector?.number?.mode).toBe("slider");
+      }
+    }
+    const { fields } = await mountEditor({ views: ["day", "week", "month"] });
+    for (const name of Object.keys(density)) expect(fields()).not.toContain(name);
+  });
+
+  it("preserves zero spacing and both switch states when saving settings", async () => {
+    const { el, settings } = await mountEditor({
+      view: "month_table",
+      month_table_full_height: true,
+    });
+    const changes: Record<string, unknown>[] = [];
+    el.addEventListener("config-changed", (e) => changes.push((e as CustomEvent).detail.config));
+    for (const enabled of [true, false]) {
+      const value = {
+        ...density,
+        month_table_inline_date: enabled,
+        month_table_compact_header: enabled,
+      };
+      settings.dispatchEvent(new CustomEvent("value-changed", { detail: { value } }));
+      const config = changes[changes.length - 1];
+      expect(config).toMatchObject({ ...value, month_table_full_height: true });
+      expect(config.persons).toEqual([{ name: "Anna", calendar: "calendar.anna" }]);
+      el.setConfig(config);
+      await el.updateComplete;
+    }
+  });
+
+  it("clears month sizing when the user resets layout settings", async () => {
+    const { el, root } = await mountEditor({ ...density, month_table_full_height: true });
+    let config: Record<string, unknown> = {};
+    el.addEventListener("config-changed", (e) => {
+      config = (e as CustomEvent).detail.config;
+    });
+    const reset = root.querySelectorAll<HTMLButtonElement>(".presets button")[2];
+    reset.click();
+    for (const key of [...Object.keys(density), "month_table_full_height"]) {
+      expect(config[key]).toBeUndefined();
+    }
+    expect(config.persons).toEqual([{ name: "Anna", calendar: "calendar.anna" }]);
   });
 });
