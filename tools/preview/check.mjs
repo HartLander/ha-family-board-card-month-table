@@ -11,11 +11,14 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 const PORT = Number(process.env.PORT ?? 8931);
 const EXEC = process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium";
+const UPSTREAM_BUNDLE = process.env.UPSTREAM_BUNDLE_PATH;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
 
 const server = createServer(async (req, res) => {
   const path = normalize(decodeURI((req.url ?? "/").split("?")[0])).replace(/^(\.\.[/\\])+/, "");
-  const file = join(ROOT, path.endsWith("/") ? `${path}tools/preview/index.html` : path);
+  const file = path === "/__upstream__/ha-family-board-card.js" && UPSTREAM_BUNDLE
+    ? UPSTREAM_BUNDLE
+    : join(ROOT, path.endsWith("/") ? `${path}tools/preview/index.html` : path);
   try {
     const body = await readFile(file);
     res.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" });
@@ -44,6 +47,7 @@ async function open({
   slim = false,
   timezoneId,
   time,
+  compare,
 }) {
   const page = await browser.newPage({ viewport: { width, height: 900 }, locale, timezoneId });
   const errors = [];
@@ -51,7 +55,7 @@ async function open({
   const at = time ?? new Date();
   if (!time) at.setHours(10, 20, 0, 0);
   await page.clock.install({ time: at });
-  const url = `http://127.0.0.1:${PORT}/tools/preview/index.html?view=${view}&lang=${lang}&alerts=1${dark ? "&dark=1" : ""}${slim ? "&slim=1" : ""}`;
+  const url = `http://127.0.0.1:${PORT}/tools/preview/index.html?view=${view}&lang=${lang}&alerts=1${dark ? "&dark=1" : ""}${slim ? "&slim=1" : ""}${compare ? `&compare=${compare}` : ""}`;
   await page.goto(url);
   await page.waitForTimeout(1500);
   return { page, errors };
@@ -62,12 +66,12 @@ for (const locale of ["de-DE", "en-US"]) {
   for (const width of [1400, 400]) {
     const { page, errors } = await open({ width, locale });
     await page.evaluate(() => {
-      const root = document.querySelector("family-board-card").renderRoot;
+      const root = document.querySelector("family-board-card-month-table").renderRoot;
       root.querySelector(".event").click();
     });
     await page.waitForTimeout(300);
     const overflow = await page.evaluate(() => {
-      const d = document.querySelector("family-board-card").renderRoot.querySelector(".dialog");
+      const d = document.querySelector("family-board-card-month-table").renderRoot.querySelector(".dialog");
       return d.scrollWidth - d.clientWidth;
     });
     check(`Dialog ohne Überlauf (${locale}, ${width}px)`, overflow <= 0, `${overflow}px`);
@@ -80,7 +84,7 @@ for (const locale of ["de-DE", "en-US"]) {
 {
   const { page } = await open({ view: "timeline" });
   const labels = await page.evaluate(() => {
-    const root = document.querySelector("family-board-card").renderRoot;
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
     const wrap = root.querySelector(".tlwrap").getBoundingClientRect();
     const hours = [...root.querySelectorAll(".tlhour")];
     const box = (n) => n.getBoundingClientRect();
@@ -101,7 +105,7 @@ for (const locale of ["de-DE", "en-US"]) {
 {
   const { page } = await open({ view: "agenda", width: 560 });
   const landed = await page.evaluate(() => {
-    const root = document.querySelector("family-board-card").renderRoot;
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
     const box = root.querySelector(".agenda");
     const today = box.querySelector(".agenda-date.today")?.closest(".agenda-day");
     if (!today) return { ok: false, why: "kein Heute-Abschnitt" };
@@ -118,7 +122,7 @@ for (const locale of ["de-DE", "en-US"]) {
   const headerHeight = async (slim) => {
     const { page } = await open({ slim });
     const px = await page.evaluate(() => {
-      const root = document.querySelector("family-board-card").renderRoot;
+      const root = document.querySelector("family-board-card-month-table").renderRoot;
       const card = root.querySelector("ha-card") ?? root.firstElementChild;
       const board = root.querySelector(".board");
       return Math.round(board.getBoundingClientRect().top - card.getBoundingClientRect().top);
@@ -143,7 +147,7 @@ for (const locale of ["de-DE", "en-US"]) {
     time: new Date("2026-10-15T10:00:00+02:00"),
   });
   const grid = await page.evaluate(() => {
-    const root = document.querySelector("family-board-card").renderRoot;
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
     return [...root.querySelectorAll(".monthgrid > *")].map((cell) =>
       parseInt((cell.textContent ?? "").trim(), 10),
     );
@@ -169,7 +173,7 @@ for (const [view, sel, width] of [
 ]) {
   const { page } = await open({ view, width });
   const fit = await page.evaluate((sel) => {
-    const root = document.querySelector("family-board-card").renderRoot;
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
     const cells = [...root.querySelectorAll(sel)].filter((c) => c.querySelector(".wx"));
     const bad = cells.filter((c) => {
       const box = c.getBoundingClientRect();
@@ -195,7 +199,7 @@ const axe = (page, context, options) =>
   page.addScriptTag({ content: AXE }).then(() =>
     page.evaluate(
       async ([context, options]) => {
-        const res = await window.axe.run(context ?? document.querySelector("family-board-card"), {
+        const res = await window.axe.run(context ?? document.querySelector("family-board-card-month-table"), {
           resultTypes: ["violations"],
           ...options,
         });
@@ -218,7 +222,7 @@ for (const [view, dark, dialog] of [
   const { page } = await open({ view, dark });
   if (dialog) {
     await page.evaluate(() =>
-      document.querySelector("family-board-card").renderRoot.querySelector(".event").click(),
+      document.querySelector("family-board-card-month-table").renderRoot.querySelector(".event").click(),
     );
     await page.waitForTimeout(300);
   }
@@ -239,7 +243,7 @@ for (const dark of [false, true]) {
     const { page } = await open({ view, dark });
     const found = await axe(
       page,
-      { include: [{ fromShadowDom: ["family-board-card", sel] }] },
+      { include: [{ fromShadowDom: ["family-board-card-month-table", sel] }] },
       { runOnly: ["color-contrast"] },
     );
     check(
@@ -256,7 +260,7 @@ for (const dark of [false, true]) {
   const { page } = await open({ view: "day" });
   const active = () =>
     page.evaluate(() => {
-      const a = document.querySelector("family-board-card").renderRoot.activeElement;
+      const a = document.querySelector("family-board-card-month-table").renderRoot.activeElement;
       return a ? { tag: a.tagName, text: a.textContent.trim(), inDialog: !!a.closest(".dialog") } : {};
     });
   await page.keyboard.press("Tab");
@@ -275,12 +279,12 @@ for (const dark of [false, true]) {
   check("Ansichts-Tabs sind ein einziger Tab-Stopp", after.text !== "Woche", after.text);
   await page.keyboard.press("ArrowLeft"); // harmless outside a tab list
   await page.evaluate(() => {
-    const el = document.querySelector("family-board-card");
+    const el = document.querySelector("family-board-card-month-table");
     el._view = "day";
   });
   await page.waitForTimeout(800);
   await page.evaluate(() =>
-    document.querySelector("family-board-card").renderRoot.querySelector(".event").focus(),
+    document.querySelector("family-board-card-month-table").renderRoot.querySelector(".event").focus(),
   );
   await page.keyboard.press("Enter");
   await page.waitForTimeout(300);
@@ -302,11 +306,61 @@ for (const dark of [false, true]) {
 for (const [view, width] of [["day", 400], ["agenda", 400], ["week", 400], ["month", 400], ["month_table", 400]]) {
   const { page } = await open({ view, width });
   const bleed = await page.evaluate(() => {
-    const el = document.querySelector("family-board-card");
+    const el = document.querySelector("family-board-card-month-table");
     return el.scrollWidth - el.clientWidth;
   });
   check(`${view} läuft bei ${width}px nicht seitlich aus`, bleed <= 0, `${bleed}px`);
   await page.close();
+}
+
+/* --- both real bundles must work together, in either load order ----- */
+if (UPSTREAM_BUNDLE) {
+  for (const compare of ["upstream-first", "fork-first"]) {
+    const { page, errors } = await open({ view: "month_table", compare });
+    const together = await page.evaluate(async (order) => {
+      const original = document.querySelector("family-board-card");
+      const fork = document.querySelector("family-board-card-month-table");
+      const cards = order === "upstream-first" ? [original, fork] : [fork, original];
+      const editors = [];
+      for (const card of cards) {
+        const editor = await card.constructor.getConfigElement();
+        editor.hass = card.hass;
+        editor.setConfig(card._config);
+        document.body.appendChild(editor);
+        await editor.updateComplete;
+        editors.push({ tag: editor.localName, rendered: !!editor.shadowRoot?.querySelector("ha-form") });
+        editor.remove();
+      }
+      const types = window.customCards.map(card => card.type);
+      return {
+        rendered: !!original.shadowRoot?.querySelector(".monthwrap") &&
+          !!fork.shadowRoot?.querySelector(".month-table") && original.constructor !== fork.constructor,
+        stubs: [original, fork].map(card => card.constructor.getStubConfig().type),
+        picker: types.filter(type => type === "family-board-card").length === 1 &&
+          types.filter(type => type === "family-board-card-month-table").length === 1,
+        editors,
+        month: original.shadowRoot.querySelector(".nav-now").textContent.trim(),
+      };
+    }, compare);
+    check(`Original und Fork rendern gleichzeitig (${compare})`, together.rendered);
+    check(`Neue Karten behalten ihren eigenen Typ (${compare})`,
+      together.stubs.join(",") === "custom:family-board-card,custom:family-board-card-month-table");
+    check(`Beide Einträge im Kartenwähler (${compare})`, together.picker);
+    check(`Beide Editoren rendern unabhängig (${compare})`,
+      together.editors.every(editor => editor.rendered) &&
+      together.editors.map(editor => editor.tag).sort().join(",") ===
+        "ha-family-board-card-editor,ha-family-board-card-month-table-editor");
+    await page.locator("family-board-card-month-table").getByRole("button", { name: "Nächster Monat", exact: true }).click();
+    await page.waitForTimeout(200);
+    const months = await page.evaluate(() => ["family-board-card", "family-board-card-month-table"].map(tag =>
+      document.querySelector(tag).shadowRoot.querySelector(".nav-now").textContent.trim()));
+    check(`Navigation des Forks lässt Original unverändert (${compare})`,
+      months[0] === together.month && months[1] !== together.month);
+    check(`Keine Registrierungs- oder Laufzeitfehler (${compare})`, errors.length === 0, errors.join(" | "));
+    await page.close();
+  }
+} else {
+  console.log("  skip Paralleler Betrieb: UPSTREAM_BUNDLE_PATH auf das Original-Bundle setzen");
 }
 
 await browser.close();

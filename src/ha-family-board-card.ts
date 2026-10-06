@@ -341,14 +341,14 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./editor");
-    return document.createElement("ha-family-board-card-editor") as LovelaceCardEditor;
+    return document.createElement("ha-family-board-card-month-table-editor") as LovelaceCardEditor;
   }
 
   /** Zero-config start: detect person.* entities and match their calendars. */
   public static getStubConfig(hass?: HomeAssistant): FamilyBoardConfig {
     const persons = hass ? autoDetectPersons(hass) : [];
     return {
-      type: "custom:family-board-card",
+      type: "custom:family-board-card-month-table",
       view: "day",
       time_grid: 30,
       start_hour: 6,
@@ -4909,23 +4909,23 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
   `;
 }
 
-if (!customElements.get("family-board-card")) {
-  customElements.define("family-board-card", FamilyBoardCard);
+if (!customElements.get("family-board-card-month-table")) {
+  customElements.define("family-board-card-month-table", FamilyBoardCard);
 }
 
 // register in the card picker
 (window as any).customCards = (window as any).customCards || [];
 (window as any).customCards.push({
-  type: "family-board-card",
-  name: "Family Board Card",
+  type: "family-board-card-month-table",
+  name: "Family Board Card – Month Table",
   description:
-    "Family calendar / who-is-where board for multiple people \u2013 day, timeline, week, month and agenda views.",
+    "Family calendar with a days-by-person month table; can be used alongside the original Family Board Card.",
   preview: true,
-  documentationURL: "https://github.com/renespeaker/ha-family-board-card",
+  documentationURL: "https://github.com/HartLander/ha-family-board-card-month-table",
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD %c v0.30.0-month-table.1 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.30.0-month-table.2 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );

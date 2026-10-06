@@ -21,13 +21,13 @@ type Form = HTMLElement & {
 const mounted: HTMLElement[] = [];
 
 async function mountEditor(config: Record<string, unknown> = {}, lang = "de") {
-  const el = document.createElement("ha-family-board-card-editor") as HTMLElement & {
+  const el = document.createElement("ha-family-board-card-month-table-editor") as HTMLElement & {
     setConfig(c: unknown): void;
     hass: unknown;
     updateComplete: Promise<unknown>;
   };
   el.setConfig({
-    type: "custom:family-board-card",
+    type: "custom:family-board-card-month-table",
     persons: [{ name: "Anna", calendar: "calendar.anna" }],
     ...config,
   });

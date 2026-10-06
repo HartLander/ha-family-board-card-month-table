@@ -13,14 +13,19 @@ Die Installationsanleitung steht in [README.de.md](../README.de.md#installation)
    `npm run build` ausführen. Zusätzlich das Browser-Harness und die Karte in
    Home Assistant prüfen.
 4. Im Repository `HartLander/ha-family-board-card-month-table` ein Release vom
-   geprüften Commit anlegen, beispielsweise `v0.30.0-month-table.1`.
+   geprüften Commit anlegen, beispielsweise `v0.30.0-month-table.2`.
 5. Nach dem Veröffentlichen baut `.github/workflows/release.yml` das Bundle und
-   hängt `ha-family-board-card.js` an das Release. Den erfolgreichen Workflow
+   hängt `ha-family-board-card-month-table.js` an das Release. Den erfolgreichen Workflow
    und das Asset prüfen, bevor die HACS-Installation empfohlen wird.
 
-`hacs.json` behält den Dateinamen `ha-family-board-card.js` bei; der Anzeigename
-ist **Family Board Card – Month Table**. Das Custom Element bleibt
-`family-board-card`, daher darf die Originalressource nicht gleichzeitig geladen werden.
+`hacs.json` verwendet den eigenen Dateinamen `ha-family-board-card-month-table.js`;
+der Anzeigename ist **Family Board Card – Month Table**. Die eigenen Elemente
+`family-board-card-month-table` und `ha-family-board-card-month-table-editor`
+erlauben den parallelen Betrieb mit der Originalressource.
+
+Vorabversion `.1` verwendete noch die Namen des Originals. Beim Aktualisieren
+auf `.2` den alten Fork-Ressourcen-Eintrag entfernen und den neuen Kartentyp
+`custom:family-board-card-month-table` verwenden; Details in der README.
 
 Ein Pull Request allein veröffentlicht noch kein Release. Diese Anleitung
 behauptet weder eine Aufnahme des Forks in den Standard-Store noch eine bereits

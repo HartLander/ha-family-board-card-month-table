@@ -830,4 +830,4 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
   `;
 }
 
-customElements.define("ha-family-board-card-editor", FamilyBoardCardEditor);
+customElements.define("ha-family-board-card-month-table-editor", FamilyBoardCardEditor);

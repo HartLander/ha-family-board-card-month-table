@@ -17,8 +17,8 @@ Only `claude/*` branches can be pushed. Never push to `main` directly.
 2. Bump it in **all** places (they must match):
    - `package.json` → `"version"`
    - `package-lock.json` → top-level `"version"` and `packages[""].version`
-   - `src/ha-family-board-card.ts` → console banner `"%c FAMILY-BOARD-CARD %c vX.Y.Z "`
-3. Rebuild and commit the bundle — `dist/ha-family-board-card.js` is tracked
+   - `src/ha-family-board-card.ts` → console banner `"%c FAMILY-BOARD-CARD-MONTH-TABLE %c vX.Y.Z "`
+3. Rebuild and commit the bundle — `dist/ha-family-board-card-month-table.js` is tracked
    because HACS serves it from the release:
    ```bash
    rm -rf dist && npm run build
@@ -65,7 +65,7 @@ Publish.
 
 1. `get_release_by_tag` → release exists, not draft, tag on the merge commit.
 2. The **Release** workflow run for that tag succeeded (`actions_list`).
-3. The release has the asset `ha-family-board-card.js`; compare its size with
+3. The release has the asset `ha-family-board-card-month-table.js`; compare its size with
    the local `dist/` build.
 4. If an issue is fixed by this release: reply on it (show the draft to the
    user first) and close it with `state_reason: completed`.

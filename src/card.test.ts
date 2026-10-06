@@ -66,12 +66,12 @@ async function mount(config: Partial<FamilyBoardConfig>, opts: MountOpts = {}) {
   if (opts.forecast) states["weather.forecast_home"] = { state: "sunny", attributes: {} };
   const wsCalls: Array<Record<string, unknown>> = [];
   const apiPaths: string[] = [];
-  const el = document.createElement("family-board-card") as HTMLElement & {
+  const el = document.createElement("family-board-card-month-table") as HTMLElement & {
     setConfig(c: unknown): void;
     hass: unknown;
     updateComplete: Promise<unknown>;
   };
-  el.setConfig({ type: "custom:family-board-card", persons: [], ...config });
+  el.setConfig({ type: "custom:family-board-card-month-table", persons: [], ...config });
   el.hass = {
     locale: { language: opts.lang ?? "de", time_format: "24" },
     states,
@@ -118,10 +118,10 @@ afterEach(() => {
 describe("configuration", () => {
   it("refuses a config without persons, in the browser language", async () => {
     await import("./ha-family-board-card");
-    const el = document.createElement("family-board-card") as HTMLElement & {
+    const el = document.createElement("family-board-card-month-table") as HTMLElement & {
       setConfig(c: unknown): void;
     };
-    expect(() => el.setConfig({ type: "custom:family-board-card" })).toThrow(/persons/);
+    expect(() => el.setConfig({ type: "custom:family-board-card-month-table" })).toThrow(/persons/);
   });
 
   it("falls back to an enabled view when the default is not among them", async () => {
@@ -524,7 +524,7 @@ describe("due tasks", () => {
   });
 
   it("survives a list that cannot be read", async () => {
-    const el = document.createElement("family-board-card") as HTMLElement & {
+    const el = document.createElement("family-board-card-month-table") as HTMLElement & {
       setConfig(c: unknown): void;
       hass: unknown;
       updateComplete: Promise<unknown>;
@@ -532,7 +532,7 @@ describe("due tasks", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-11T10:20:00"));
     el.setConfig({
-      type: "custom:family-board-card",
+      type: "custom:family-board-card-month-table",
       view: "day",
       views: ["day"],
       persons: [{ name: "Anna", tasks: "todo.kaputt" }],

@@ -2,7 +2,8 @@
 <style>
   body { margin:0; background:#f4f6f9; font-family: Roboto, "Segoe UI", system-ui, sans-serif; }
   #root { padding: 0; }
-  family-board-card {
+  #root.comparison { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+  family-board-card, family-board-card-month-table {
     --ha-card-background: #fff; --card-background-color: #fff;
     --primary-text-color:#212121; --secondary-text-color:#727272;
     --divider-color:#e0e0e0; --secondary-background-color:#f5f5f5;
@@ -12,7 +13,7 @@
   }
 
   body.dark { background:#111111; }
-  body.dark family-board-card {
+  body.dark family-board-card, body.dark family-board-card-month-table {
     --ha-card-background:#1c1c1c; --card-background-color:#1c1c1c;
     --primary-text-color:#e1e1e1; --secondary-text-color:#9b9b9b;
     --divider-color:rgba(225,225,225,.12); --secondary-background-color:#202020;
@@ -20,11 +21,15 @@
     --text-primary-color:#212121; --state-icon-color:#a1a1a1;
     --ha-card-box-shadow:0 2px 8px rgba(0,0,0,.5);
   }
-  ha-card, family-board-card::part(card) { }
+  ha-card, family-board-card-month-table::part(card) { }
 </style></head><body>
 <div id="root"></div>
 <script type="module">
-import "../../dist/ha-family-board-card.js";
+const Q = new URLSearchParams(location.search);
+const compare = Q.get("compare");
+if (compare === "upstream-first") await import("/__upstream__/ha-family-board-card.js");
+await import("../../dist/ha-family-board-card-month-table.js");
+if (compare === "fork-first") await import("/__upstream__/ha-family-board-card.js");
 // Stand-in for HA's <ha-icon>: takes the space a real icon takes, so layout
 // checks see what users see (without it every icon would be 0px wide).
 customElements.define("ha-icon", class extends HTMLElement {
@@ -34,7 +39,6 @@ customElements.define("ha-icon", class extends HTMLElement {
       borderRadius: "50%", background: "currentColor", opacity: ".35" });
   }
 });
-const Q = new URLSearchParams(location.search);
 if (Q.has("dark")) document.body.classList.add("dark");
 const lang = Q.get("lang") || "de";
 const T = lang === "de"
@@ -88,9 +92,9 @@ const hass = {
     return { response: { "weather.home": { forecast } } };
   },
 };
-const el=document.createElement("family-board-card");
-el.setConfig({
-  type:"custom:family-board-card",
+const el=document.createElement("family-board-card-month-table");
+const config = {
+  type:"custom:family-board-card-month-table",
   title: T.title,
   view: Q.get("view") || "day",
   views:["now","day","timeline","week","month","month_table","agenda"],
@@ -104,7 +108,17 @@ el.setConfig({
     {name:"Mia",person:"person.mia",calendar:"calendar.mia"},
     {name:"Leon",person:"person.leon",calendar:"calendar.leon"},
   ],
-});
+};
+el.setConfig(config);
 el.hass=hass;
-document.getElementById("root").appendChild(el);
+const root = document.getElementById("root");
+if (compare === "upstream-first" || compare === "fork-first") {
+  root.classList.add("comparison");
+  const original = document.createElement("family-board-card");
+  original.setConfig({ ...config, type:"custom:family-board-card", title:"Original · " + T.title,
+    view:"month", views:config.views.filter(view => view !== "month_table") });
+  original.hass = hass;
+  root.appendChild(original);
+}
+root.appendChild(el);
 </script></body></html>

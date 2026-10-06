@@ -30,4 +30,4 @@ jobs:
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/ha-family-board-card.js
+          files: dist/ha-family-board-card-month-table.js

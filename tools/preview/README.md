@@ -11,7 +11,7 @@ finden.
 ```bash
 npm run build          # das Harness lädt dist/
 npm run preview        # http://127.0.0.1:8931/tools/preview/
-npm run check:browser  # Layout-Prüfungen, schreibt Screenshots nach /tmp
+npm run check:browser  # Layout- und Barrierefreiheitsprüfungen
 ```
 
 Dazu gehören Barrierefreiheits-Prüfungen mit axe-core (Struktur/ARIA in jeder
@@ -33,3 +33,20 @@ im Layout so viel Platz einnehmen wie in Home Assistant.
 
 Die Daten sind erfunden und die Namen generisch — die Screenshots im README
 entstehen hier, es sollen keine echten Familiennamen hineingeraten.
+
+## Paralleler Betrieb mit dem Original
+
+Die optionalen Vergleichsprüfungen laden beide echten Bundles in beiden
+Reihenfolgen und prüfen Rendering, Kartenwähler, Editor, neue Konfigurationen
+und unabhängige Navigation. Das Original-Bundle muss lokal vorliegen:
+
+```bash
+git show 96ca7494d5d8798555c951f8545122b2923a3672:dist/ha-family-board-card.js > /tmp/ha-family-board-original.js
+UPSTREAM_BUNDLE_PATH=/tmp/ha-family-board-original.js CHROMIUM_PATH=/pfad/zu/chromium npm run check:browser
+```
+
+Der angegebene Commit ist die unveränderte Upstream-Basis v0.30.0 dieses Forks.
+Bei einem flachen Checkout stattdessen ein lokal gespeichertes Original-Bundle
+übergeben. Ohne `UPSTREAM_BUNDLE_PATH` wird dieser zusätzliche Testblock
+ausdrücklich übersprungen. Die Fixture wird nur im lokalen Testserver unter
+`/__upstream__/ha-family-board-card.js` ausgeliefert und gehört nicht zum Release.
