@@ -302,3 +302,48 @@ describe("month table density controls", () => {
     expect(config.persons).toEqual([{ name: "Anna", calendar: "calendar.anna" }]);
   });
 });
+
+describe("wall-display editor", () => {
+  it("offers navigation controls and localized marking controls", async () => {
+    for (const lang of ["de", "en"]) {
+      const { fields, settings } = await mountEditor({ view: "month_table" }, lang);
+      for (const name of [
+        "header_position",
+        "navigation_position",
+        "navigation_layout",
+        "equal_view_buttons",
+        "controls_height",
+        "month_table_marker_calendars",
+        "month_table_marker_keep_columns",
+        "month_table_marker_mode",
+        "month_table_marker_text_color",
+        "month_table_fill_height",
+      ]) {
+        expect(fields()).toContain(name);
+        expect(settings.computeLabel({ name })).not.toBe(name);
+      }
+    }
+  });
+  it("round-trips the HA color picker without losing calendars", async () => {
+    const { el, settings } = await mountEditor({
+      view: "month_table",
+      month_table_saturday_color: "#ff8800",
+      month_table_marker_calendars: ["calendar.holidays"],
+    });
+    expect((settings as any).data.month_table_saturday_color).toEqual([255, 136, 0]);
+    let changed: any;
+    el.addEventListener("config-changed", (event) => {
+      changed = (event as CustomEvent).detail.config;
+    });
+    settings.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: {
+          value: { month_table_saturday_color: [1, 2, 3], month_table_sunday_color: null },
+        },
+      }),
+    );
+    expect(changed.month_table_saturday_color).toBe("#010203");
+    expect(changed.month_table_sunday_color).toBeNull();
+    expect(changed.month_table_marker_calendars).toEqual(["calendar.holidays"]);
+  });
+});

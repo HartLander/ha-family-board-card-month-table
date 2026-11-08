@@ -1,8 +1,8 @@
 # Family Board Card – Month Table
 
-Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.30.0**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
+Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.31.2**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
 
-**Fork-Version: `0.30.0-month-table.4`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork-Version: `0.31.2-month-table.1`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Monatstabelle aktivieren
 
@@ -37,6 +37,38 @@ month_table_event_gap: 1
 Der Schriftregler skaliert Datum, Namen, Termine und Uhrzeiten gemeinsam. Ohne diese Option gelten die bisherigen Schrift- und Theme-Einstellungen. Zusammen mit `month_table_full_height: true` passt der vollständige Monat in eine niedrigere Karte.
 
 [English](README.md)
+
+## Bedienleisten und Datumsmarkierungen fürs Wanddisplay
+
+Unter **Layout & Größe** lassen sich Titel/Ansichtswechsel (`header_position`) und Monats-/Wochennavigation (`navigation_position`) unabhängig auf `bottom` verschieben. Mit `navigation_layout: spread` steht das Datum mittig und die Pfeile sitzen an den äußeren Rändern. `equal_view_buttons: true` macht die Ansichtstasten so breit wie die längste sichtbare Beschriftung. Regler steuern Knopfhöhe (28–80 px), Schrift (10–24 px) und Pfeilbreite (28–120 px). `month_table_fill_height: true` füllt freien Platz bis zu den unteren Bedienleisten aus; volle Monate dürfen weiter über den Bildschirm hinausgehen.
+
+Für Feiertage oder andere gemeinsame Termine wähle **Kalender als Datumsmarkierungen**. Eine Personenzuordnung ist dafür nicht erforderlich. Nur das Datumsfeld bekommt eine Tönung und einen farbigen Rand. Darstellungsarten sind `text` (Standard), `chip` oder `indicator`. Mit `month_table_marker_keep_columns: false` (Standard) verschwinden reine Markierungsspalten; in gemischten Personenspalten werden nur die Termine dieser Kalender ausgeblendet. Schalte die Option ein, um die bisherigen Terminspalten zusätzlich zu behalten.
+
+```yaml
+header_position: bottom
+navigation_position: bottom
+navigation_layout: spread
+equal_view_buttons: true
+controls_height: 44
+controls_font_size: 16
+navigation_arrow_width: 60
+month_table_fill_height: true
+month_table_saturday_color: '#4c78ff'
+month_table_sunday_color: '#cc4455'
+month_table_marker_calendars: [calendar.feiertage]
+month_table_marker_mode: text
+month_table_marker_keep_columns: false
+month_table_marker_font_size: 11
+month_table_marker_grow: false
+month_table_date_width: 140
+calendars:
+  calendar.feiertage:
+    color: '#ff8800'
+```
+
+Behalte deine `persons:`-Einträge und ergänze die Zuordnung in vorhandenen `calendars:`-Einstellungen. Optional überschreibt `month_table_marker_color` die Kalender-/Personenfarbe; `month_table_marker_text_color` legt die Textfarbe fest. Bei Überschneidungen hat der zuerst ausgewählte Markierungskalender Vorrang. Markierungen überschreiben Samstags-/Sonntagstönungen, die ebenfalls nur das Datumsfeld färben. Farbwähler im Editor speichern die Farben als Hexwerte.
+
+Bei `month_table_marker_grow: false` nutzt Text nur freien Platz in der Zeile und wird bei Bedarf gekürzt; Farbrand und vollständiger Tooltip bleiben erhalten. Mit `true` wachsen Zeilen für den gesamten Text. Lange Texte verbreitern die Datumsspalte nicht automatisch. Dafür gibt es Regler für Spaltenbreite (92–280 px) und Markierungsschrift (8–22 px). Für reine Markierungskalender ist `persons: []` möglich. Die gemeinsamen `family_calendars` aus dem Original bleiben auch in den anderen Ansichten verfügbar.
 
 ![Family Board Card – Tagesansicht](docs/preview-day.png)
 
@@ -76,6 +108,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Drag & Drop** – in der Tagesansicht Termine per Ziehen verschieben (Uhrzeit) und am unteren Rand die Dauer ändern; rastet aufs Zeitraster und schreibt direkt in den Kalender zurück – **nur** bei schreibbaren Kalendern, Einzeltermine (keine Serien).
 - **Termine verwalten** – anlegen/bearbeiten/löschen direkt in der Karte, **aber nur** bei Kalendern, die das unterstützen (Local Calendar, CalDAV …). Schreibgeschützte Kalender (z. B. ICS-Abos) werden automatisch erkannt und nur angezeigt. Wiederkehrende Termine: Wahl **„nur dieser / dieser und folgende"**.
 - **Mehrere Kalender pro Person** – z. B. Arbeit + privat in einer Spalte (im Editor auswählbar).
+- **Familien-Kalender** – Kalender, die allen gehören (Feiertage, Schulferien, Müllabfuhr), kommen in `family_calendars`. Ihre Termine erscheinen als Band über den Personen in Tag, Zeitstrahl und Jetzt-Ansicht, unter dem Wochentag in der Woche, in den Monatszellen und in der Agenda – und zählen nie als Doppelbuchung. Symbol und Farbe kommen aus der `calendars:`-Zuordnung (z. B. `mdi:trash-can`).
 - **Robuste Termin-Logik** – Ganztags-Events (Ende exklusiv), über Mitternacht laufende und mehrtägige Termine werden korrekt auf die Tage aufgeteilt; Zeitzonen werden berücksichtigt.
 - **Mehrsprachig & lokalisiert** – Texte in Deutsch/Englisch, Wochentage und Uhrzeiten (12/24 h) aus der HA-Locale; relative Tage („Heute/Morgen").
 - **Alltags-Politur** – vergangene Termine ausgegraut, Einfärben auch nach Kalender, Ort direkt in der Karten-App öffnen, störende Termine per Muster ausblenden.
@@ -99,7 +132,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Kompakt-Modus** – ein Schalter (`compact`) für kleinere Schriften und engere Abstände, statt drei Regler einzeln zu justieren.
 - **Personen beim Start ausgeblendet** – `hidden: true` pro Person; die Spalte startet eingeklappt und ein Klick auf den Kopf holt sie zurück.
 
-> Status: **v0.30.0-month-table.4 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
+> Status: **v0.31.2-month-table.1 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
 
 ## Installation
 
@@ -108,13 +141,13 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 Verwende `dist/ha-family-board-card-month-table.js` aus diesem Fork oder baue die Datei mit `npm ci && npm run build`. Kopiere sie nach `/config/www/ha-family-board-card-month-table.js` und füge diese Dashboard-Ressource hinzu:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.4
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.1
 type: module
 ```
 
 **Originalressource behalten:** Der Fork registriert eine eigene Karte und einen eigenen Editor, sodass beide Ressourcen gleichzeitig geladen werden können. Originalkarten verwenden `custom:family-board-card`, Fork-Karten verwenden `custom:family-board-card-month-table`. Lade nach dem Hinzufügen der Ressource Browser bzw. Frontendcache neu.
 
-**Umstieg von Vorabversion `.1`:** Entferne den alten Fork-Ressourcen-Eintrag mit `family-board-month-table.js` oder `/ha-family-board-card-month-table/ha-family-board-card.js`, ergänze die neue Ressource und ändere nur die Fork-Karten auf `type: custom:family-board-card-month-table`. Behalte die Originalressource `/hacsfiles/ha-family-board-card/ha-family-board-card.js` bei oder stelle sie wieder her. Das alte Fork-Bundle `.1` belegt noch den Elementnamen des Originals und darf nicht mehr geladen werden.
+**Umstieg von Vorabversion `0.30.0-month-table.1`:** Entferne den alten Fork-Ressourcen-Eintrag mit `family-board-month-table.js` oder `/ha-family-board-card-month-table/ha-family-board-card.js`, ergänze die neue Ressource und ändere nur die Fork-Karten auf `type: custom:family-board-card-month-table`. Behalte die Originalressource `/hacsfiles/ha-family-board-card/ha-family-board-card.js` bei oder stelle sie wieder her. Das alte Fork-Bundle `0.30.0-month-table.1` belegt noch den Elementnamen des Originals und darf nicht mehr geladen werden.
 
 ### HACS als benutzerdefiniertes Repository
 
@@ -187,6 +220,7 @@ persons:
 | `radius`        | number  | –       | Ecken-Radius der Termin-Blöcke in px (setzt `--fb-radius`) |
 | `past_opacity`  | number  | –       | Deckkraft vergangener Termine in % (setzt `--fb-past-opacity`) |
 | `show_progress` | boolean | `true`  | Fortschrittsbalken am laufenden Termin |
+| `family_calendars` | Liste | –     | `calendar.*`-Entitäten für alle (Feiertage, Müllabfuhr …), erscheinen über den Personen |
 | `weather_entity`| string  | –       | `weather.*`-Entität für die Tages-Vorhersage (HA-Standort) |
 | `show_weather`  | boolean | `true`* | Wetter in den Ansichten anzeigen (*wirkt nur, wenn `weather_entity` gesetzt) |
 | `hour_height`   | number  | `64`    | Höhe einer Stunde in px (40–96) – Tagesansicht skalieren (Wandtablet); bei `fit_height` die Obergrenze |

@@ -14,6 +14,7 @@ const EN: Dict = {
   agenda: "Agenda",
   timeline: "Timeline",
   now: "Now",
+  family: "Family",
   all_day: "all-day",
   this_week: "This week",
   prev_week: "Previous week",
@@ -74,6 +75,7 @@ const DE: Dict = {
   agenda: "Agenda",
   timeline: "Zeitstrahl",
   now: "Jetzt",
+  family: "Familie",
   all_day: "ganztägig",
   this_week: "Diese Woche",
   prev_week: "Vorherige Woche",
@@ -199,7 +201,10 @@ export function formatCountdown(hass: any, date: Date): string {
 
 /** Localized "1 Jan – 7 Jan" style range for a week. */
 export function formatWeekRange(hass: any, monday: Date): string {
-  const sunday = new Date(monday.getTime() + 6 * 86400000);
+  // calendar days, not 6 × 24 h: across a DST change that lands an hour off
+  // and, for weeks starting on Sunday, on the wrong day
+  const sunday = new Date(monday);
+  sunday.setDate(sunday.getDate() + 6);
   const fmt = new Intl.DateTimeFormat(intlLocale(hass), { day: "numeric", month: "short" });
   return `${fmt.format(monday)} – ${fmt.format(sunday)}`;
 }

@@ -788,8 +788,125 @@ describe("accessibility", () => {
 
   it("reads month cells as a date with their events, not a bare number", async () => {
     const { root } = await mount({ persons, view: "month", views: ["month"] }, { calendars });
-    const labels = [...root.querySelectorAll(".mcell")].map((c) => c.getAttribute("aria-label"));
-    expect(labels).toContain("Freitag, 11. September: Abholen");
+    // no aria-label: it would hide the visible text from voice control
+    // ("label in name"); the full date is added as screen-reader-only text
+    const cells = [...root.querySelectorAll(".mcell")];
+    expect(cells.every((c) => !c.hasAttribute("aria-label"))).toBe(true);
+    const name = (c: Element) => (c.textContent ?? "").replace(/\s+/g, " ").trim();
+    expect(cells.map(name)).toContain("Freitag, 11. September: 11 Abholen");
+  });
+
+  it("keeps the visible weekday in its name and adds the date", async () => {
+    const { root } = await mount({ persons, view: "week", views: ["week"] }, { calendars });
+    const day = root.querySelectorAll(".wday")[4];
+    expect(day.hasAttribute("aria-label")).toBe(false);
+    expect((day.textContent ?? "").replace(/\s+/g, " ").trim()).toBe("Freitag, 11. September: Fr");
+  });
+
+  it("reads month events hidden behind +N at the end", async () => {
+    const many = {
+      "calendar.anna": ["A", "B", "C", "D", "E"].map((t, i) =>
+        ev(t, `0${i + 1}:00`, `0${i + 1}:30`),
+      ),
+    };
+    const { root } = await mount({ persons, view: "month", views: ["month"] }, { calendars: many });
+    const cell = [...root.querySelectorAll(".mcell")].find((c) =>
+      c.textContent?.includes("Freitag, 11. September"),
+    );
+    expect(cell?.querySelector(".mmore")?.textContent).toBe("+2");
+    expect(cell?.querySelector(".mmore + .sr")?.textContent).toBe("D, E");
+  });
+});
+
+describe("family calendars", () => {
+  const persons = [
+    { name: "Anna", calendar: "calendar.anna" },
+    { name: "Mia", calendar: "calendar.mia" },
+  ];
+  const calendars = {
+    "calendar.anna": [ev("Büro", "09:00", "17:00")],
+    "calendar.mia": [ev("Schule", "08:00", "13:00")],
+    "calendar.muell": [allDay("Gelbe Tonne")],
+    "calendar.ferien": [allDay("Herbstferien", "2026-09-10", "2026-09-15")],
+    "calendar.familie": [ev("Elternabend", "09:30", "10:30")],
+  };
+  const base = {
+    persons,
+    family_calendars: ["calendar.muell", "calendar.ferien", "calendar.familie"],
+    start_hour: 7,
+    end_hour: 20,
+  };
+
+  it("shows family events as a band above the people, with the time for timed ones", async () => {
+    const { texts, root } = await mount({ ...base, view: "day", views: ["day"] }, { calendars });
+    // chronological: the holidays started the day before
+    expect(texts(".famband .famchip")).toEqual([
+      "Herbstferien",
+      "Gelbe Tonne",
+      "09:30 Elternabend",
+    ]);
+    // they belong to nobody: no person column shows them
+    const columns = [...root.querySelectorAll(".board .event, .board .band")].map(
+      (n) => n.textContent ?? "",
+    );
+    expect(columns.join(" ")).not.toMatch(/Tonne|Elternabend/);
+  });
+
+  it("never counts them as a double booking or for the focus bar", async () => {
+    // Anna is free at 10:20 - a leaked family event would be "now" for her
+    const { root, texts } = await mount(
+      { ...base, view: "day", views: ["day"], show_alerts: true, show_focus: true },
+      { calendars: { ...calendars, "calendar.anna": [] } },
+    );
+    const alerts = [...root.querySelectorAll(".alert")].map((n) => n.textContent ?? "").join(" ");
+    expect(alerts).not.toContain("Elternabend");
+    expect(texts(".focus").join(" ")).not.toContain("Elternabend");
+  });
+
+  it("puts them under each weekday in the week, multi-day ones on every day", async () => {
+    const { all } = await mount({ ...base, view: "week", views: ["week"] }, { calendars });
+    const perDay = all(".wday").map((d) =>
+      [...d.querySelectorAll(".famchip .famtext")].map((c) => c.textContent),
+    );
+    // Mon 7 .. Sun 13: holidays from Thu 10 on, bin and parents' evening on Fri 11
+    expect(perDay[2]).toEqual([]);
+    expect(perDay[3]).toEqual(["Herbstferien"]);
+    expect(perDay[4]).toEqual(["Herbstferien", "Gelbe Tonne", "Elternabend"]);
+    expect(perDay[6]).toEqual(["Herbstferien"]);
+  });
+
+  it("shows them in month cells and reads them out", async () => {
+    const { root } = await mount({ ...base, view: "month", views: ["month"] }, { calendars });
+    const cell = [...root.querySelectorAll(".mcell")].find((c) =>
+      c.textContent?.includes("Freitag, 11. September"),
+    );
+    expect((cell?.textContent ?? "").replace(/\s+/g, " ").trim()).toBe(
+      "Freitag, 11. September: 11 Herbstferien Gelbe Tonne 09:30 Elternabend Schule Büro",
+    );
+    expect(cell?.querySelectorAll(".famchip")).toHaveLength(3);
+  });
+
+  it("lists a day in the agenda even when only the family has something", async () => {
+    const { texts } = await mount(
+      { ...base, view: "agenda", views: ["agenda"] },
+      { calendars: { ...calendars, "calendar.anna": [], "calendar.mia": [] } },
+    );
+    // Thu 10 has nothing but the start of the holidays
+    expect(texts(".agenda-date").some((t) => t.startsWith("Gestern"))).toBe(true);
+  });
+
+  it("shows today's family events in the now view", async () => {
+    const { texts } = await mount({ ...base, view: "now", views: ["now"] }, { calendars });
+    expect(texts(".now .famband .famtext")).toEqual(["Herbstferien", "Gelbe Tonne", "Elternabend"]);
+  });
+
+  it("stays out of the way when not configured", async () => {
+    const { root, apiPaths } = await mount(
+      { persons, view: "day", views: ["day"], start_hour: 7, end_hour: 20 },
+      { calendars },
+    );
+    expect(root.querySelector(".famband")).toBeNull();
+    expect(apiPaths.some((p) => p.includes("calendar.muell"))).toBe(false);
   });
 });
 
@@ -832,7 +949,7 @@ describe("month table", () => {
     expect(all(".month-table .wday")).toHaveLength(days);
     expect(all(".month-table .wcell")).toHaveLength(days * 2);
     expect(texts(".wphead > span")).toEqual(["Mama", "Papa"]);
-    const dates = all(".wday").map((n) => n.getAttribute("aria-label"));
+    const dates = all(".wday").map((n) => n.querySelector(".sr")?.textContent);
     expect(new Set(dates).size).toBe(days);
     expect(root.querySelector(".wday")?.textContent).toContain("01.");
     expect(all(".wday")[days - 1]?.textContent).toContain(`${days}.`);
@@ -872,9 +989,9 @@ describe("month table", () => {
         { now: "2026-10-04T10:00:00" },
       );
       expect(all(".wday")).toHaveLength(22);
-      expect(all(".wday").some((n) => /Samstag|Sonntag/.test(n.getAttribute("aria-label")!))).toBe(
-        false,
-      );
+      expect(
+        all(".wday").some((n) => /Samstag|Sonntag/.test(n.querySelector(".sr")?.textContent!)),
+      ).toBe(false);
     },
   );
 
@@ -969,4 +1086,192 @@ describe("month table", () => {
     expect(all(".wday")).toHaveLength(31);
     expect(root.querySelector(".wchip")?.textContent).toContain("Monatsende");
   });
+});
+
+describe("wall-display navigation and date markings", () => {
+  const persons = [
+    { name: "Anna", calendar: "calendar.anna" },
+    { name: "Feiertage", calendar: "calendar.holidays", color: "#ff8800" },
+  ];
+  const base: Partial<FamilyBoardConfig> = { view: "month_table", persons };
+  const holidays = [
+    allDay("Heiligabend", "2026-12-24", "2026-12-25"),
+    allDay("Weihnachten", "2026-12-25", "2026-12-27"),
+  ];
+  const opts = { now: "2026-12-01T10:00:00", calendars: { "calendar.holidays": holidays } };
+
+  it("moves controls in DOM order and keeps a single working month navigation", async () => {
+    const { root, el } = await mount(
+      { ...base, header_position: "bottom", navigation_position: "bottom" },
+      opts,
+    );
+    const card = root.querySelector("ha-card")!;
+    expect(card.lastElementChild?.className).toBe("top");
+    expect(card.lastElementChild?.previousElementSibling?.className).toContain("bottom-nav");
+    expect(root.querySelectorAll(".nav-now")).toHaveLength(1);
+    (root.querySelector('[aria-label="Nächster Monat"]') as HTMLElement).click();
+    for (let i = 0; i < 8; i++) {
+      await vi.advanceTimersByTimeAsync(0);
+      await el.updateComplete;
+    }
+    expect(root.querySelector(".nav-now")?.textContent).toContain("Januar 2027");
+  });
+
+  it("fetches a marking calendar without a person assignment and respects exclusive ends", async () => {
+    const { root, apiPaths, all } = await mount(
+      { ...base, persons: [persons[0]], month_table_marker_calendars: ["calendar.holidays"] },
+      opts,
+    );
+    expect(apiPaths.some((path) => path.startsWith("calendars/calendar.holidays?"))).toBe(true);
+    expect(all(".wday.has-markers")).toHaveLength(3);
+    expect(all(".wday")[23].textContent).toContain("Heiligabend");
+    expect(all(".wday")[24].textContent).toContain("Weihnachten");
+    expect(all(".wday")[26].textContent).not.toContain("Weihnachten");
+    expect(root.querySelectorAll(".wphead")).toHaveLength(1);
+  });
+
+  it("deduplicates markings and hides only the selected calendar columns", async () => {
+    const { all } = await mount(
+      { ...base, month_table_marker_calendars: ["calendar.holidays"] },
+      opts,
+    );
+    expect(all(".wphead")).toHaveLength(1);
+    expect(all(".date-marker-text")).toHaveLength(3);
+    expect(all(".wday")[23].getAttribute("style")).toContain("#ff8800");
+    expect(all(".wcell").every((cell) => !cell.getAttribute("style")?.includes("#ff8800"))).toBe(
+      true,
+    );
+  });
+
+  it("keeps the calendar column when requested and supports a color-only indication", async () => {
+    const { all } = await mount(
+      {
+        ...base,
+        month_table_marker_calendars: ["calendar.holidays"],
+        month_table_marker_keep_columns: true,
+        month_table_marker_mode: "indicator",
+      },
+      opts,
+    );
+    expect(all(".wphead")).toHaveLength(2);
+    expect(all(".wchip")).toHaveLength(3);
+    expect(all(".date-markers")).toHaveLength(0);
+    expect(all(".wday")[23].getAttribute("title")).toBe("Heiligabend");
+    expect(all(".wday")[23].textContent).toContain("Heiligabend"); // accessible text
+  });
+
+  it("retains other events in mixed-calendar person columns", async () => {
+    const { all } = await mount(
+      {
+        ...base,
+        persons: [{ name: "Anna", calendar: ["calendar.anna", "calendar.holidays"] }],
+        month_table_marker_calendars: ["calendar.holidays"],
+      },
+      {
+        ...opts,
+        calendars: {
+          ...opts.calendars,
+          "calendar.anna": [allDay("Sport", "2026-12-24", "2026-12-25")],
+        },
+      },
+    );
+    expect(all(".wphead")).toHaveLength(1);
+    expect(all(".wchip")).toHaveLength(1);
+    expect(all(".wchip")[0].textContent).toContain("Sport");
+  });
+
+  it("uses selected calendar order, mapping colors and explicit overrides", async () => {
+    const { all } = await mount(
+      {
+        ...base,
+        month_table_marker_calendars: ["calendar.holidays"],
+        calendars: { "calendar.holidays": { color: "#123456" } },
+        month_table_marker_text_color: "#abcdef",
+        month_table_marker_mode: "chip",
+      },
+      opts,
+    );
+    expect(all(".wday")[23].getAttribute("style")).toContain("#123456");
+    expect(all(".date-marker-chip")).toHaveLength(3);
+    expect(all(".date-markers")[0].getAttribute("style")).toContain("#abcdef");
+  });
+
+  it("supports marking-only boards and colors actual weekend dates", async () => {
+    const { all } = await mount(
+      {
+        ...base,
+        persons: [persons[1]],
+        month_table_marker_calendars: ["calendar.holidays"],
+        month_table_saturday_color: "#123456",
+        month_table_sunday_color: "#abcdef",
+        month_table_marker_color: "#778899",
+      },
+      opts,
+    );
+    expect(all(".wphead")).toHaveLength(0);
+    expect(all(".wday")).toHaveLength(31);
+    expect(all(".wday")[4].getAttribute("style")).toContain("#123456"); // Dec 5 Saturday
+    expect(all(".wday")[5].getAttribute("style")).toContain("#abcdef");
+    expect(all(".wday")[25].getAttribute("style")).toContain("#778899"); // holiday overrides Saturday
+  });
+
+  it("does not fetch marker-only calendars in unrelated views", async () => {
+    const { apiPaths } = await mount(
+      {
+        ...base,
+        view: "day",
+        persons: [persons[0]],
+        month_table_marker_calendars: ["calendar.holidays"],
+      },
+      opts,
+    );
+    expect(apiPaths.some((path) => path.includes("calendar.holidays"))).toBe(false);
+  });
+});
+
+it("uses mapped titles and one request for calendars shared by markings and people", async () => {
+  const { all, apiPaths } = await mount(
+    {
+      view: "month_table",
+      persons: [{ calendar: "calendar.holiday" }],
+      month_table_marker_calendars: ["calendar.holiday"],
+      calendars: { "calendar.holiday": { title_field: "description" } },
+    },
+    {
+      now: "2026-12-01T10:00:00",
+      calendars: {
+        "calendar.holiday": [
+          { ...allDay("Original", "2026-12-24", "2026-12-25"), description: "Heiligabend" },
+        ],
+      },
+    },
+  );
+  expect(all(".date-marker-text")).toHaveLength(1);
+  expect(all(".date-marker-text")[0].textContent).toBe("Heiligabend");
+  expect(apiPaths.filter((path) => path.includes("calendar.holiday"))).toHaveLength(1);
+});
+
+it("reuses calendar data for layout changes and reapplies changed event filters", async () => {
+  const config = {
+    view: "month_table",
+    persons: [],
+    month_table_marker_calendars: ["calendar.holiday"],
+  };
+  const { el, apiPaths, all } = await mount(config as Partial<FamilyBoardConfig>, {
+    now: "2026-12-01T10:00:00",
+    calendars: { "calendar.holiday": [allDay("Heiligabend", "2026-12-24", "2026-12-25")] },
+  });
+  el.setConfig({ ...config, controls_height: 44 });
+  for (let i = 0; i < 8; i++) {
+    await vi.advanceTimersByTimeAsync(0);
+    await el.updateComplete;
+  }
+  expect(apiPaths).toHaveLength(1);
+  el.setConfig({ ...config, hide_patterns: ["Heiligabend"] });
+  for (let i = 0; i < 8; i++) {
+    await vi.advanceTimersByTimeAsync(0);
+    await el.updateComplete;
+  }
+  expect(all(".has-markers")).toHaveLength(0);
+  expect(apiPaths).toHaveLength(2);
 });

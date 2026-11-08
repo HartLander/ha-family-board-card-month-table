@@ -315,7 +315,9 @@ for (const [width, height, lang] of [[1080, 1920, "de"], [400, 900, "en"]]) {
     restored.stacked && restored.eventFont === 15 && restored.tableHeight === original.tableHeight && restored.headerHeight === original.headerHeight);
   await setConfig({ view: "week", month_table_font_size: 22, month_table_row_padding: 0, month_table_row_height: 16 });
   const week = await measure();
-  check(`Monatsregler ändern die Wochenansicht nicht (${label})`, week.dateFont === 12.5 && week.eventFont === 15 && week.emptyHeight === 79);
+  await setConfig({month_table_font_size: undefined, month_table_row_padding: undefined, month_table_row_height: undefined});
+  const unconfiguredWeek = await measure();
+  check(`Monatsregler ändern die Wochenansicht nicht (${label})`, week.dateFont === unconfiguredWeek.dateFont && week.eventFont === unconfiguredWeek.eventFont && week.emptyHeight === unconfiguredWeek.emptyHeight);
   check(`keine Konsolenfehler (Monatsregler, ${label})`, errors.length === 0, errors.join(" | "));
   await page.close();
 }
@@ -345,6 +347,118 @@ for (const [view, sel, width] of [
     fit.n > 0 && fit.bad === 0,
     `${fit.n} Zellen mit Wetter, ${fit.bad} zu schmal`,
   );
+  await page.close();
+}
+
+/* --- family calendar chips must fit their day / month cell ---------- */
+for (const [view, sel, width] of [
+  ["week", ".wday", 1400],
+  ["week", ".wday", 400],
+  ["month", ".mcell", 1400],
+  ["month", ".mcell", 400],
+  ["day", ".famband", 400],
+]) {
+  const { page } = await open({ view, width });
+  const fit = await page.evaluate((sel) => {
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
+    const cells = [...root.querySelectorAll(sel)].filter((c) => c.querySelector(".famchip"));
+    const bad = cells.filter((c) => {
+      const box = c.getBoundingClientRect();
+      return [...c.querySelectorAll(".famchip")].some((chip) => {
+        const r = chip.getBoundingClientRect();
+        // the chip box leaves the cell, or its text spills out of the chip
+        // (an ellipsis clips inside the chip and is fine)
+        return (
+          r.right > box.right + 0.5 ||
+          r.left < box.left - 0.5 ||
+          chip.scrollWidth > chip.clientWidth + 1
+        );
+      });
+    });
+    return { n: cells.length, bad: bad.length };
+  }, sel);
+  check(
+    `Familien-Chips passen in ${sel} (${view}, ${width}px)`,
+    fit.n > 0 && fit.bad === 0,
+    `${fit.n} Zellen mit Familien-Terminen, ${fit.bad} zu schmal`,
+  );
+  await page.close();
+}
+
+/* --- configurable footer navigation and compact holiday labels ----- */
+for (const width of [400, 1080]) {
+  const {page, errors} = await open({view: "month_table", width, height: 1920, slim: true, dark: true,
+    timezoneId: "Europe/Berlin", time: new Date("2026-12-24T10:00:00+01:00")});
+  const configure = async (patch) => {
+    await page.evaluate(async patch => {
+      const card = document.querySelector("family-board-card-month-table");
+      card.setConfig({...card._config, ...patch}); await card.updateComplete;
+    }, patch);
+    await page.waitForTimeout(150);
+  };
+  await configure({family_calendars: undefined, header_position: "bottom", navigation_position: "bottom",
+    navigation_layout: "spread", equal_view_buttons: true, controls_height: 44, controls_font_size: 16,
+    navigation_arrow_width: 60, month_table_full_height: true, month_table_inline_date: true,
+    month_table_row_height: 32, month_table_row_padding: 1, month_table_font_size: 12,
+    month_table_saturday_color: "#3366ff", month_table_sunday_color: "#cc3344"});
+  const measure = () => page.evaluate(() => {
+    const card = document.querySelector("family-board-card-month-table"), root = card.renderRoot;
+    const wrap = root.querySelector(".weekwrap"), row = root.querySelectorAll(".wday")[23];
+    const rect = el => el.getBoundingClientRect();
+    const nav = root.querySelector(".bottom-nav .weeknav"), buttons = [...nav.querySelectorAll("button")];
+    const widths = [...root.querySelectorAll(".switch button")].map(el => rect(el).width);
+    return {rowHeight: rect(row).height, columnWidth: rect(row).width, tableBottom: rect(wrap).bottom,
+      footerTop: rect(root.querySelector(".bottom-nav")).top, footerBottom: rect(root.querySelector(".top")).bottom,
+      navCount: root.querySelectorAll(".nav-now").length,
+      headerBelow: rect(root.querySelector(".top")).top >= rect(wrap).bottom,
+      arrowsSpread: Math.abs(rect(buttons[0]).left - rect(nav).left) < 1 && Math.abs(rect(buttons[2]).right - rect(nav).right) < 1,
+      monthCentered: Math.abs((rect(buttons[1]).left + rect(buttons[1]).right)/2 - (rect(nav).left + rect(nav).right)/2) < 1,
+      equal: Math.max(...widths) - Math.min(...widths) < 1,
+      touch: buttons.every(el => rect(el).height >= 44),
+      marked: !!row.style.getPropertyValue("--fb-date-highlight"),
+      color: row.style.getPropertyValue("--fb-date-highlight"),
+      title: row.title, marker: row.querySelector(".date-markers")?.textContent.trim(),
+      headings: root.querySelectorAll(".wphead").length,
+      outerOverflow: card.scrollWidth - card.clientWidth,
+      overflow: wrap.scrollHeight - wrap.clientHeight,
+      dayColored: [...root.querySelectorAll(".wday")].filter(el => el.style.getPropertyValue("--fb-date-highlight")).length,
+    };
+  });
+  const before = await measure();
+  check(`Bedienleisten unten, nur eine Navigation (${width}px)`, before.headerBelow && before.navCount === 1);
+  check(`Pfeile außen, Monat mittig (${width}px)`, before.arrowsSpread && before.monthCentered);
+  check(`Ansichtstasten gleich breit und Navigation berührbar (${width}px)`, before.equal && before.touch);
+  check(`Wochenendfarben erscheinen im Datumsfeld (${width}px)`, before.dayColored > 0);
+  await configure({month_table_marker_calendars: ["calendar.muell"], month_table_marker_mode: "text", month_table_marker_text_color: "#ffffff", month_table_marker_font_size: 12});
+  const text = await measure();
+  check(`Feiertagstext markiert Datum ohne höhere Zeile (${width}px)`, text.marked && text.marker?.length > 0 && text.rowHeight === before.rowHeight, JSON.stringify(text));
+  check(`Text verbreitert nur die konfigurierte Datumsspalte (${width}px)`, text.columnWidth === 140 && text.overflow <= 1 && text.outerOverflow === 0);
+  await configure({month_table_marker_mode: "indicator"});
+  const indicator = await measure();
+  check(`Farbhinweis behält Tooltip ohne sichtbaren Termintext (${width}px)`, indicator.marked && !indicator.marker && indicator.title.length > 0);
+  await configure({month_table_marker_mode: "chip", month_table_marker_grow: true, month_table_date_width: 180});
+  const chip = await measure();
+  check(`Terminblock mit optionaler Zeilenvergrößerung (${width}px)`, chip.marker?.length > 0 && chip.columnWidth === 180);
+  await configure({month_table_marker_grow: false, month_table_fill_height: true});
+  const filled = await measure();
+  check(`Monat füllt Platz bis zur unteren Bedienleiste (${width}px)`, filled.tableBottom <= filled.footerTop + 1 && filled.footerBottom >= 1900 && filled.footerBottom <= 1920, JSON.stringify(filled));
+  if (width === 1080 && process.env.MONTH_TABLE_CONTROLS_SCREENSHOT) await page.screenshot({path: process.env.MONTH_TABLE_CONTROLS_SCREENSHOT, fullPage: true});
+  await configure({controls_height: 80, controls_font_size: 24, navigation_arrow_width: 120});
+  const overlap = await page.evaluate(() => {
+    const nav = document.querySelector("family-board-card-month-table").renderRoot.querySelector(".bottom-nav .weeknav");
+    const [left, middle, right] = [...nav.children].map(el => el.getBoundingClientRect());
+    return left.right > middle.left + 1 || middle.right > right.left + 1;
+  });
+  check(`maximale Knopfgrößen ohne überlappende Monatsbeschriftung (${width}px)`, !overlap);
+  await page.setViewportSize({width, height: 2160});
+  await page.waitForTimeout(200);
+  const resized = await measure();
+  check(`Höhenfüllung folgt geänderter Bildschirmgröße (${width}px)`, Math.abs(resized.footerBottom - 2144) <= 2);
+  const monthBefore = await page.locator("family-board-card-month-table").locator(".nav-now").textContent();
+  await page.locator("family-board-card-month-table").getByRole("button", {name: "Nächster Monat", exact: true}).click();
+  const monthAfter = await page.locator("family-board-card-month-table").locator(".nav-now").textContent();
+  check(`Monatswechsel über untere Navigation funktioniert (${width}px)`, monthBefore !== monthAfter);
+  check(`keine Laufzeitfehler (Bedienleisten/Markierungen, ${width}px)`, errors.length === 0, errors.join(" | "));
   await page.close();
 }
 
@@ -472,6 +586,24 @@ for (const [view, width] of [["day", 400], ["agenda", 400], ["week", 400], ["mon
 }
 
 /* --- both real bundles must work together, in either load order ----- */
+/* --- footer stays visible when a day board fills the screen ---------- */
+{
+  const {page} = await open({view: "day", width: 1080, height: 1920, slim: true});
+  await page.evaluate(async () => {
+    const card = document.querySelector("family-board-card-month-table");
+    card.setConfig({...card._config, full_height: true, fit_height: true, header_position: "bottom", navigation_position: "bottom", controls_height: 44});
+    await card.updateComplete;
+  });
+  await page.waitForTimeout(200);
+  const visible = await page.evaluate(() => {
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
+    return root.querySelector(".top").getBoundingClientRect().bottom <= innerHeight &&
+      root.querySelector(".board").getBoundingClientRect().bottom <= root.querySelector(".bottom-nav").getBoundingClientRect().top + 1;
+  });
+  check("Untere Bedienleisten bleiben bei voller Tageshöhe im Bildschirm", visible);
+  await page.close();
+}
+
 if (UPSTREAM_BUNDLE) {
   for (const compare of ["upstream-first", "fork-first"]) {
     const { page, errors } = await open({ view: "month_table", compare });

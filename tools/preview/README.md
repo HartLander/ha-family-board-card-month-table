@@ -32,6 +32,7 @@ Durchlauf eine Hochkantvorschau der kompakten Einstellungen.
 `?dark=1` (Home-Assistant-Dark-Theme), `?alerts=1` (Tages-Check) und
 `?noweather=1` (ohne Wetter-Entität; sonst liefert das Harness eine
 10-Tage-Vorhersage ab heute).
+`?nofamily=1` schaltet die Familien-Kalender (Müll, Ferien, Elternabend) ab.
 
 `<ha-icon>` wird durch einen grauen Kreis in Icon-Größe ersetzt, damit Icons
 im Layout so viel Platz einnehmen wie in Home Assistant.
@@ -46,11 +47,11 @@ Reihenfolgen und prüfen Rendering, Kartenwähler, Editor, neue Konfigurationen
 und unabhängige Navigation. Das Original-Bundle muss lokal vorliegen:
 
 ```bash
-git show 96ca7494d5d8798555c951f8545122b2923a3672:dist/ha-family-board-card.js > /tmp/ha-family-board-original.js
+git show 78f07f9a14be8d4e97664ec01dad7e5d899b7f84:dist/ha-family-board-card.js > /tmp/ha-family-board-original.js
 UPSTREAM_BUNDLE_PATH=/tmp/ha-family-board-original.js CHROMIUM_PATH=/pfad/zu/chromium npm run check:browser
 ```
 
-Der angegebene Commit ist die unveränderte Upstream-Basis v0.30.0 dieses Forks.
+Der angegebene Commit ist die unveränderte Upstream-Stand nach v0.31.2 dieses Forks.
 Bei einem flachen Checkout stattdessen ein lokal gespeichertes Original-Bundle
 übergeben. Ohne `UPSTREAM_BUNDLE_PATH` wird dieser zusätzliche Testblock
 ausdrücklich übersprungen. Die Fixture wird nur im lokalen Testserver unter
