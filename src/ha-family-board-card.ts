@@ -2706,7 +2706,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     return html`
       <div class="weekhead">${month ? this._monthNav() : this._weekNav()}</div>
       <div
-        class="weekwrap ${month ? "month-table" : ""} ${month && this._config.month_table_fill_height ? "fill-month" : ""} ${month && this._config.month_table_marker_grow ? "grow-markers" : ""} ${
+        class="weekwrap ${month ? "month-table" : ""} ${month && this._config.month_table_fill_height ? "fill-month" : ""} ${month && this._config.month_table_marker_grow && this._config.month_table_marker_mode !== "indicator" ? "grow-markers" : ""} ${month && this._config.month_table_marker_mode === "indicator" ? "indicator-only" : ""} ${
           month && this._config.month_table_full_height ? "full-month" : ""
         } ${month && this._config.month_table_inline_date ? "inline-date" : ""} ${
           month && this._config.month_table_compact_header ? "compact-header" : ""
@@ -5271,7 +5271,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     .month-table .wday {
       gap: 0;
     }
-    .month-table .wday.has-markers {
+    .month-table:not(.indicator-only) .wday.has-markers {
       justify-content: flex-start;
     }
     .date-markers {
@@ -5490,7 +5490,7 @@ if (!customElements.get("family-board-card-month-table")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.1 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.2 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );

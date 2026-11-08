@@ -238,15 +238,20 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
             },
           },
         },
-        ...MONTH_COLORS.slice(2).map((name) => ({ name, selector: { color_rgb: {} } })),
-        {
-          name: "month_table_marker_font_size",
-          selector: {
-            number: { min: 8, max: 22, step: 1, mode: "slider", unit_of_measurement: "px" },
-          },
-        },
-        { name: "month_table_marker_grow", selector: { boolean: {} } },
+        { name: "month_table_marker_color", selector: { color_rgb: {} } },
       );
+      if (cfg.month_table_marker_mode !== "indicator") {
+        layout.push(
+          { name: "month_table_marker_text_color", selector: { color_rgb: {} } },
+          {
+            name: "month_table_marker_font_size",
+            selector: {
+              number: { min: 8, max: 22, step: 1, mode: "slider", unit_of_measurement: "px" },
+            },
+          },
+          { name: "month_table_marker_grow", selector: { boolean: {} } },
+        );
+      }
     }
 
     const extras: unknown[] = [

@@ -304,6 +304,36 @@ describe("month table density controls", () => {
 });
 
 describe("wall-display editor", () => {
+  it("hides text-only controls for color indicators and restores them for visible labels", async () => {
+    const saved = {
+      view: "month_table",
+      month_table_marker_grow: true,
+      month_table_marker_font_size: 22,
+      month_table_marker_text_color: "#abcdef",
+    };
+    const { el, fields } = await mountEditor({ ...saved, month_table_marker_mode: "indicator" });
+    expect(fields()).toContain("month_table_marker_color");
+    for (const name of [
+      "month_table_marker_text_color",
+      "month_table_marker_font_size",
+      "month_table_marker_grow",
+    ])
+      expect(fields()).not.toContain(name);
+    el.setConfig({
+      ...saved,
+      type: "custom:family-board-card-month-table",
+      persons: [{ name: "Anna" }],
+      month_table_marker_mode: "text",
+    });
+    await el.updateComplete;
+    const form = [...el.shadowRoot!.querySelectorAll("ha-form")].pop() as Form & {
+      data: Record<string, unknown>;
+    };
+    const layout = form.schema.find((group) => group.title?.includes("Layout"))!;
+    expect(layout.schema?.map((field) => field.name)).toContain("month_table_marker_grow");
+    expect(form.data.month_table_marker_grow).toBe(true);
+    expect(form.data.month_table_marker_font_size).toBe(22);
+  });
   it("offers navigation controls and localized marking controls", async () => {
     for (const lang of ["de", "en"]) {
       const { fields, settings } = await mountEditor({ view: "month_table" }, lang);

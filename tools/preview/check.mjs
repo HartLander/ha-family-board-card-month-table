@@ -64,6 +64,67 @@ async function open({
   return { page, errors };
 }
 
+async function finish() {
+  await browser.close();
+  server.close();
+  console.log(failures.length ? `\n${failures.length} von ${checks} Prüfungen fehlgeschlagen` : `\nAlle ${checks} Prüfungen erfolgreich`);
+  process.exit(failures.length ? 1 : 0);
+}
+
+/* --- hidden marking labels must not reserve layout space ----------- */
+for (const width of [400, 1080]) for (const fill of [false, true]) {
+  const {page, errors} = await open({view: "month_table", width, height: 1920, slim: true,
+    time: new Date("2026-12-24T10:00:00+01:00"), timezoneId: "Europe/Berlin"});
+  await page.evaluate(async () => {
+    const card = document.querySelector("family-board-card-month-table");
+    const read = card.hass.callApi;
+    card.hass = {...card.hass, callApi: async (method, path) => path.startsWith("calendars/calendar.muell?")
+      ? ["2026-12-01", "2026-12-24"].flatMap(day => Array.from({length: 4}, (_, index) => ({uid: `${day}-${index}`,
+          summary: `__MARKER__ Ein langer Feiertagstitel ${index}`, start: {date: day},
+          end: {date: day === "2026-12-01" ? "2026-12-02" : "2026-12-25"}})))
+      : read(method, path)};
+    card.setConfig({...card._config, persons: [{name: "Anna", calendar: "calendar.anna"}],
+      family_calendars: undefined, weather_entity: undefined, month_table_full_height: true,
+      month_table_inline_date: true, month_table_row_height: 16, month_table_row_padding: 0,
+      month_table_marker_calendars: ["calendar.muell"], month_table_marker_mode: "text",
+      month_table_marker_font_size: 22, month_table_marker_grow: true,
+      hide_patterns: ["__MARKER__"]});
+    await card.updateComplete;
+  });
+  const configure = async patch => {
+    await page.evaluate(async patch => {const card = document.querySelector("family-board-card-month-table");
+      card.setConfig({...card._config, ...patch}); await card.updateComplete;}, patch);
+    await page.waitForTimeout(150);
+  };
+  const measure = () => page.evaluate(() => {
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
+    const rows = [...root.querySelectorAll(".wday")];
+    const selected = [rows[0], rows[23]];
+    return {heights: selected.map(row => row.getBoundingClientRect().height),
+      centers: selected.map(row => {const cell=row.getBoundingClientRect(), date=row.querySelector(".date-main").getBoundingClientRect();
+        return Math.abs((cell.top+cell.bottom)/2 - (date.top+date.bottom)/2);}),
+      grid: root.querySelector(".weekgrid").getBoundingClientRect().height,
+      labels: root.querySelectorAll(".date-markers").length,
+      indicator: selected.every(row => row.style.getPropertyValue("--fb-date-highlight") && row.title.includes("__MARKER__")),
+      titles: selected.map(row => row.querySelector(".sr")?.textContent),
+    };
+  });
+  await configure({month_table_fill_height: fill});
+  const baseline = await measure();
+  await configure({hide_patterns: []});
+  const text = await measure();
+  const label = `${width}px, Bildschirmhöhe ${fill ? "füllen" : "natürlich"}`;
+  check(`sichtbare Feiertagstexte dürfen Zeilen vergrößern (${label})`, text.heights.every((height,index) => height > baseline.heights[index] + 20));
+  await configure({month_table_marker_mode: "indicator"});
+  const indicator = await measure();
+  check(`Nur Farbhinweis ohne Textplatz und mit normaler Datumsausrichtung (${label})`,
+    indicator.labels === 0 && indicator.heights.every((height,index) => Math.abs(height-baseline.heights[index]) <= 1) &&
+    Math.abs(indicator.grid-baseline.grid) <= 1 && indicator.centers.every(center => center <= 1), JSON.stringify({baseline, indicator}));
+  check(`Farbe und vollständiger Tooltip bleiben beim Ausblenden erhalten (${label})`, indicator.indicator && errors.length === 0, errors.join(" | "));
+  await page.close();
+}
+if (process.env.BROWSER_CHECK_GROUP === "indicator") await finish();
+
 /* --- the dialog must keep its fields inside, in every locale -------- */
 for (const locale of ["de-DE", "en-US"]) {
   for (const width of [1400, 400]) {
@@ -653,7 +714,4 @@ if (UPSTREAM_BUNDLE) {
   console.log("  skip Paralleler Betrieb: UPSTREAM_BUNDLE_PATH auf das Original-Bundle setzen");
 }
 
-await browser.close();
-server.close();
-console.log(failures.length ? `\n${failures.length} von ${checks} Prüfungen fehlgeschlagen` : `\nAlle ${checks} Prüfungen erfolgreich`);
-process.exit(failures.length ? 1 : 0);
+await finish();

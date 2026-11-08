@@ -2,7 +2,7 @@
 
 Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.31.2**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
 
-**Fork-Version: `0.31.2-month-table.1`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork-Version: `0.31.2-month-table.2`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Monatstabelle aktivieren
 
@@ -70,6 +70,8 @@ Behalte deine `persons:`-Einträge und ergänze die Zuordnung in vorhandenen `ca
 
 Bei `month_table_marker_grow: false` nutzt Text nur freien Platz in der Zeile und wird bei Bedarf gekürzt; Farbrand und vollständiger Tooltip bleiben erhalten. Mit `true` wachsen Zeilen für den gesamten Text. Lange Texte verbreitern die Datumsspalte nicht automatisch. Dafür gibt es Regler für Spaltenbreite (92–280 px) und Markierungsschrift (8–22 px). Für reine Markierungskalender ist `persons: []` möglich. Die gemeinsamen `family_calendars` aus dem Original bleiben auch in den anderen Ansichten verfügbar.
 
+`month_table_marker_mode: indicator` verwendet die normale Datumsausrichtung und reserviert keinen Platz für Markierungstext – auch wenn zuvor die Zeilenvergrößerung aktiviert war. Der Editor blendet reine Textoptionen dabei aus und behält ihre Werte für einen späteren Wechsel zurück bei. Mindestzeilenhöhe, sichtbare Termine in anderen Spalten und das Ausfüllen der Bildschirmhöhe können eine Zeile weiterhin höher machen.
+
 ![Family Board Card – Tagesansicht](docs/preview-day.png)
 
 <details>
@@ -132,7 +134,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Kompakt-Modus** – ein Schalter (`compact`) für kleinere Schriften und engere Abstände, statt drei Regler einzeln zu justieren.
 - **Personen beim Start ausgeblendet** – `hidden: true` pro Person; die Spalte startet eingeklappt und ein Klick auf den Kopf holt sie zurück.
 
-> Status: **v0.31.2-month-table.1 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
+> Status: **v0.31.2-month-table.2 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
 
 ## Installation
 
@@ -141,7 +143,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 Verwende `dist/ha-family-board-card-month-table.js` aus diesem Fork oder baue die Datei mit `npm ci && npm run build`. Kopiere sie nach `/config/www/ha-family-board-card-month-table.js` und füge diese Dashboard-Ressource hinzu:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.1
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.2
 type: module
 ```
 
