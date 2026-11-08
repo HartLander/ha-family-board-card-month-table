@@ -17,6 +17,11 @@ npm run check:browser  # Layout- und Barrierefreiheitsprüfungen
 Dazu gehören Barrierefreiheits-Prüfungen mit axe-core (Struktur/ARIA in jeder
 Ansicht, Kontrast der eigenen Texte, Tastatur-Bedienung).
 
+`BROWSER_CHECK_GROUP=indicator npm run check:browser` führt gezielt die Prüfungen
+für das Umschalten langer Feiertagstexte auf reine Farbhinweise aus. Sie vergleichen
+Zeilenhöhe und Datumsausrichtung mit Tagen ohne Markierungstext, auch mit
+Bildschirmhöhenfüllung und Terminen in anderen Spalten.
+
 Die Monatstabelle wird außerdem mit ein- und zweizeiligem Datum, minimalen und
 maximalen Schrift-/Abstandswerten und kompakten Personenüberschriften geprüft.
 `MONTH_TABLE_DENSITY_SCREENSHOT=/tmp/month-table-compact.png` speichert beim

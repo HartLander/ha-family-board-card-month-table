@@ -2,7 +2,7 @@
 
 This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.31.2**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` and registers a separate card, `custom:family-board-card-month-table`. You can load both cards together and compare them using the same calendar configuration.
 
-**Fork version: `0.31.2-month-table.1`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork version: `0.31.2-month-table.2`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Enable the month table
 
@@ -70,6 +70,8 @@ Keep your `persons:` entries. Merge the mapping into any existing `calendars:` s
 
 With `month_table_marker_grow: false`, marking text uses spare row space and is clipped when necessary; the color edge and full tooltip remain. Enable it to grow rows for all marking text. Long labels never widen the date column automatically; adjust its width (92–280 px) or label font size (8–22 px). For marking-only boards, `persons: []` is supported. Shared `family_calendars` from upstream remain available in the other views.
 
+`month_table_marker_mode: indicator` uses the normal date alignment and reserves no space for marking text, even if label growth was previously enabled. The editor hides text-only controls in this mode and retains their values for switching back. Minimum row height, visible appointments in other columns and screen-height filling can still make a row taller.
+
 ![Family Board Card – day view](docs/preview-day-en.png)
 
 <details>
@@ -132,7 +134,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Compact mode** – one switch (`compact`) for smaller fonts and tighter spacing instead of adjusting three sliders.
 - **People hidden on start** – `hidden: true` per person; the column starts collapsed and a click on the header brings it back.
 
-> Status: **v0.31.2-month-table.1 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
+> Status: **v0.31.2-month-table.2 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
 
 ## Installation
 
@@ -141,7 +143,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 Use `dist/ha-family-board-card-month-table.js` from this fork, or build it with `npm ci && npm run build`. Copy it to `/config/www/ha-family-board-card-month-table.js` and add this dashboard resource:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.1
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.2
 type: module
 ```
 
