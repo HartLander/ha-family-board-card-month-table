@@ -71,6 +71,67 @@ async function finish() {
   process.exit(failures.length ? 1 : 0);
 }
 
+/* --- independent full-row tints for weekends and calendar markings -- */
+if (process.env.BROWSER_CHECK_GROUP !== "indicator") {
+for (const width of [400, 1080]) {
+  const {page, errors} = await open({view: "month_table", width, height: 1920, slim: true, dark: true,
+    time: new Date("2026-12-24T10:00:00+01:00"), timezoneId: "Europe/Berlin"});
+  await page.evaluate(async () => {
+    const card = document.querySelector("family-board-card-month-table"), read = card.hass.callApi;
+    card.hass = {...card.hass, callApi: async (method, path) => path.startsWith("calendars/calendar.muell?")
+      ? ["2026-12-24", "2026-12-26"].map(day => ({uid: day, summary: "Feiertag", start: {date: day},
+          end: {date: day === "2026-12-24" ? "2026-12-25" : "2026-12-27"}})) : read(method, path)};
+    card.setConfig({...card._config, family_calendars: undefined, month_table_marker_calendars: ["calendar.muell"],
+      month_table_marker_mode: "indicator", month_table_marker_color: "#ff8800",
+      month_table_saturday_color: "#3366ff", month_table_sunday_color: "#cc3344",
+      month_table_full_height: true, month_table_inline_date: true,
+      month_table_font_size: 12, month_table_row_height: 32, month_table_row_padding: 1});
+    await card.updateComplete;
+  });
+  await page.waitForTimeout(150);
+  const measure = () => page.evaluate(() => {
+    const card = document.querySelector("family-board-card-month-table"), root=card.renderRoot;
+    const days=[...root.querySelectorAll(".wday")], cells=[...root.querySelectorAll(".wcell")], n=root.querySelectorAll(".wphead").length;
+    const dates = [1, 5, 6, 24, 26];
+    return {rows: dates.map(day => ({day,
+      color: days[day-1].style.getPropertyValue("--fb-date-highlight"),
+      background: getComputedStyle(days[day-1]).backgroundColor,
+      cells: cells.slice((day-1)*n,day*n).map(cell => ({color: cell.style.getPropertyValue("--fb-row-highlight"), background: getComputedStyle(cell).backgroundColor})),
+    })), heights: days.map(day => day.getBoundingClientRect().height),
+      events: [...root.querySelectorAll(".wchip")].map(chip => getComputedStyle(chip).backgroundColor),
+      outerOverflow: card.scrollWidth-card.clientWidth};
+  });
+  const baseline=await measure();
+  check(`Zeilenfarben standardmäßig nur im Datumsfeld (${width}px)`, baseline.rows.every(row => row.cells.every(cell => !cell.color)));
+  for (const [weekend, marker] of [[false,false],[true,false],[false,true],[true,true]]) {
+    await page.evaluate(async ({weekend,marker}) => {
+      const card=document.querySelector("family-board-card-month-table");
+      card.setConfig({...card._config,month_table_weekend_full_row: weekend,month_table_marker_full_row: marker});
+      await card.updateComplete;
+    }, {weekend,marker});
+    const result=await measure();
+    const references={"#3366ff": result.rows.find(row=>row.day===5).background,
+      "#cc3344": result.rows.find(row=>row.day===6).background,
+      "#ff8800": result.rows.find(row=>row.day===24).background};
+    const valid = result.rows.every(row => {
+      const expected=marker && (row.day===24 || row.day===26) ? "#ff8800" : weekend && (row.day===5 || row.day===26) ? "#3366ff" : weekend && row.day===6 ? "#cc3344" : "";
+      return row.cells.length > 0 && row.cells.every(cell => cell.color===expected && (!expected || cell.background===references[expected]));
+    });
+    check(`Wochenend- und Kalenderzeilen unabhängig (${width}px, Wochenende=${weekend}, Kalender=${marker})`,valid,valid ? "" : JSON.stringify(result.rows));
+  }
+  const colored=await measure();
+  check(`Zeilenfarbe erhält Terminfarben, Höhen und Kartenbreite (${width}px)`,
+    JSON.stringify(colored.events)===JSON.stringify(baseline.events) && colored.events.length>0 &&
+    JSON.stringify(colored.heights)===JSON.stringify(baseline.heights) && colored.outerOverflow===0);
+  if(width===1080 && process.env.ROW_COLOR_SCREENSHOT) await page.screenshot({path:process.env.ROW_COLOR_SCREENSHOT,fullPage:true});
+  await page.evaluate(async () => {const card=document.querySelector("family-board-card-month-table");card.setConfig({...card._config,view:"week"});await card.updateComplete;});
+  const noWeekTint=await page.evaluate(()=>[...document.querySelector("family-board-card-month-table").renderRoot.querySelectorAll(".wcell")].every(cell=>!cell.style.getPropertyValue("--fb-row-highlight")));
+  check(`Monats-Zeilenfarben wirken nicht in der Wochenansicht (${width}px)`, noWeekTint && errors.length===0,errors.join(" | "));
+  await page.close();
+}
+}
+if (process.env.BROWSER_CHECK_GROUP === "row-colors") await finish();
+
 /* --- hidden marking labels must not reserve layout space ----------- */
 for (const width of [400, 1080]) for (const fill of [false, true]) {
   const {page, errors} = await open({view: "month_table", width, height: 1920, slim: true,

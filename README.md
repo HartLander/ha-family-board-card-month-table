@@ -2,7 +2,7 @@
 
 This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.31.2**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` and registers a separate card, `custom:family-board-card-month-table`. You can load both cards together and compare them using the same calendar configuration.
 
-**Fork version: `0.31.2-month-table.2`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork version: `0.31.2-month-table.3`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Enable the month table
 
@@ -42,7 +42,14 @@ The font slider scales dates, names, event text and times together. With this op
 
 Under **Layout & size**, independently move the title/view switcher (`header_position`) and month/week navigation (`navigation_position`) to `bottom`. Set `navigation_layout: spread` for a centered date with arrows at the outer edges. `equal_view_buttons: true` makes view buttons as wide as the longest displayed label. Sliders control button height (28–80 px), font size (10–24 px) and arrow width (28–120 px). `month_table_fill_height: true` fills spare screen height, accounting for the footer controls; busy months can still extend beyond the screen.
 
-For holidays or other shared events, choose **Calendars marking the date**. The calendar does not need to belong to a person. Only the date field is tinted, with a colored edge; person cells keep their event colors. Choose `text` (default), `chip` or `indicator`. With `month_table_marker_keep_columns: false` (default), dedicated marking columns are hidden and marking events are removed from mixed-calendar columns in this view. Enable it to keep the usual event columns as well.
+For holidays or other shared events, choose **Calendars marking the date**. The calendar does not need to belong to a person. By default, only the date field is tinted, with a colored edge. Choose `text` (default), `chip` or `indicator`. With `month_table_marker_keep_columns: false` (default), dedicated marking columns are hidden and marking events are removed from mixed-calendar columns in this view. Enable it to keep the usual event columns as well.
+
+Two independent switches can extend these tints across all person columns in the day row:
+
+- **Weekend color across the entire day row** (`month_table_weekend_full_row: true`) uses the existing Saturday and Sunday color pickers.
+- **Marking calendar color across the entire day row** (`month_table_marker_full_row: true`) uses the selected marking calendar color, including any custom highlight override.
+
+Both default to `false`. When both are on, the marking calendar color takes precedence on overlapping days. With only weekend row colors enabled, a holiday date field can retain its calendar color while person cells use the weekend tint. Event chips retain their own colors, and row heights remain the same. These switches affect only `month_table`.
 
 ```yaml
 header_position: bottom
@@ -55,8 +62,10 @@ navigation_arrow_width: 60
 month_table_fill_height: true
 month_table_saturday_color: '#4c78ff'
 month_table_sunday_color: '#cc4455'
+month_table_weekend_full_row: true
 month_table_marker_calendars: [calendar.holidays]
 month_table_marker_mode: text
+month_table_marker_full_row: true
 month_table_marker_keep_columns: false
 month_table_marker_font_size: 11
 month_table_marker_grow: false
@@ -134,7 +143,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Compact mode** – one switch (`compact`) for smaller fonts and tighter spacing instead of adjusting three sliders.
 - **People hidden on start** – `hidden: true` per person; the column starts collapsed and a click on the header brings it back.
 
-> Status: **v0.31.2-month-table.2 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
+> Status: **v0.31.2-month-table.3 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
 
 ## Installation
 
@@ -143,7 +152,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 Use `dist/ha-family-board-card-month-table.js` from this fork, or build it with `npm ci && npm run build`. Copy it to `/config/www/ha-family-board-card-month-table.js` and add this dashboard resource:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.2
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.3
 type: module
 ```
 

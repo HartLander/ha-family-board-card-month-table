@@ -304,6 +304,22 @@ describe("month table density controls", () => {
 });
 
 describe("wall-display editor", () => {
+  it("offers separate localized weekend and calendar row-color switches", async () => {
+    for (const lang of ["de", "en"]) {
+      const { fields, settings } = await mountEditor(
+        { view: "month_table", month_table_marker_mode: "indicator" },
+        lang,
+      );
+      for (const name of ["month_table_weekend_full_row", "month_table_marker_full_row"]) {
+        expect(fields()).toContain(name);
+        expect(settings.computeLabel({ name })).not.toBe(name);
+        expect(settings.computeHelper({ name })).toBeTruthy();
+      }
+    }
+    const { fields } = await mountEditor({ view: "week", views: ["week"] });
+    expect(fields()).not.toContain("month_table_weekend_full_row");
+    expect(fields()).not.toContain("month_table_marker_full_row");
+  });
   it("hides text-only controls for color indicators and restores them for visible labels", async () => {
     const saved = {
       view: "month_table",

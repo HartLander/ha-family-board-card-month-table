@@ -105,10 +105,12 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   month_table_fill_height?: boolean;
   month_table_saturday_color?: string;
   month_table_sunday_color?: string;
+  month_table_weekend_full_row?: boolean;
   month_table_marker_calendars?: string[];
   month_table_marker_keep_columns?: boolean;
   month_table_marker_mode?: "chip" | "text" | "indicator";
   month_table_marker_color?: string;
+  month_table_marker_full_row?: boolean;
   month_table_marker_text_color?: string;
   month_table_marker_font_size?: number;
   month_table_marker_grow?: boolean;
@@ -1286,19 +1288,36 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
   }
 
   private _dateStyle(date: Date, markers: RawEvent[]) {
-    const weekend =
-      date.getDay() === 6
-        ? this._config.month_table_saturday_color
-        : date.getDay() === 0
-          ? this._config.month_table_sunday_color
-          : "";
-    const color = markers.length ? this._markerColor(markers[0]) : weekend;
+    const color = markers.length ? this._markerColor(markers[0]) : this._weekendColor(date);
     return {
       "--fb-date-highlight": color || undefined,
       background: color
         ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
         : undefined,
       "box-shadow": markers.length ? `inset 4px 0 ${color}` : undefined,
+    };
+  }
+
+  private _weekendColor(date: Date): string | undefined {
+    return date.getDay() === 6
+      ? this._config.month_table_saturday_color
+      : date.getDay() === 0
+        ? this._config.month_table_sunday_color
+        : undefined;
+  }
+
+  private _rowStyle(date: Date, markers: RawEvent[]) {
+    const color =
+      this._config.month_table_marker_full_row && markers.length
+        ? this._markerColor(markers[0])
+        : this._config.month_table_weekend_full_row
+          ? this._weekendColor(date)
+          : undefined;
+    return {
+      "--fb-row-highlight": color || undefined,
+      background: color
+        ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
+        : undefined,
     };
   }
 
@@ -2734,6 +2753,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
           )}
           ${days.map((d) => {
             const markers = month ? this._markersOn(dateFor(d)) : [];
+            const rowStyle = month ? this._rowStyle(dateFor(d), markers) : {};
             return html`
               <div
                 class="wday ${isToday(d) ? "today" : ""} ${markers.length ? "has-markers" : ""}"
@@ -2771,6 +2791,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
                 return html`
                   <div
                     class="wcell ${isToday(d) ? "today" : ""} ${canCreate ? "creatable" : ""}"
+                    style=${styleMap(rowStyle)}
                     @click=${() => canCreate && this._openCreateForDate(i, dateFor(d))}
                   >
                     ${(this._isOff(i)
@@ -5490,7 +5511,7 @@ if (!customElements.get("family-board-card-month-table")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.2 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.3 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );

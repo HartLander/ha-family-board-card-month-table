@@ -1,7 +1,7 @@
 # Family Board Card mit Monatstabelle
 
 Dieser Fork von [renespeaker/ha-family-board-card](https://github.com/renespeaker/ha-family-board-card) basiert auf Upstream-Version 0.31.2.
-Version des Forks: **0.31.2-month-table.2**.
+Version des Forks: **0.31.2-month-table.3**.
 
 ## Neue Ansicht
 
@@ -80,7 +80,7 @@ beschrieben. Alle Einstellungen sind auch unter **Layout & Größe** verfügbar.
 3. Ergänze in den Dashboard-Ressourcen die eigene Datei des Forks:
 
    ```yaml
-   url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.2
+   url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.3
    type: module
    ```
 
@@ -98,7 +98,7 @@ beschrieben. Alle Einstellungen sind auch unter **Layout & Größe** verfügbar.
    Dieses alte Bundle belegt noch den Namen des Originals.
 4. Lade den Home-Assistant-Browser vollständig neu. Bei Bedarf Browsercache
    bzw. Frontendcache der Companion-App aktualisieren. Die Browserkonsole
-   zeigt bei erfolgreichem Laden `v0.31.2-month-table.2`.
+   zeigt bei erfolgreichem Laden `v0.31.2-month-table.3`.
 5. Kopiere für einen direkten Vergleich deine vorhandene Karte und ändere in
    der Kopie den Typ und die Ansicht:
 

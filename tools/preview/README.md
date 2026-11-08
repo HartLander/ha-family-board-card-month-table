@@ -22,6 +22,10 @@ für das Umschalten langer Feiertagstexte auf reine Farbhinweise aus. Sie vergle
 Zeilenhöhe und Datumsausrichtung mit Tagen ohne Markierungstext, auch mit
 Bildschirmhöhenfüllung und Terminen in anderen Spalten.
 
+`BROWSER_CHECK_GROUP=row-colors npm run check:browser` prüft die getrennten
+Zeilenfarben für Wochenenden und Markierungskalender, inklusive Vorrang bei
+Überschneidungen und gleichbleibender Terminfarben und Zeilenhöhen.
+
 Die Monatstabelle wird außerdem mit ein- und zweizeiligem Datum, minimalen und
 maximalen Schrift-/Abstandswerten und kompakten Personenüberschriften geprüft.
 `MONTH_TABLE_DENSITY_SCREENSHOT=/tmp/month-table-compact.png` speichert beim

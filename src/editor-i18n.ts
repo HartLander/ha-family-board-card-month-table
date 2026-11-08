@@ -17,6 +17,12 @@ const EN: Dict = {
   l_month_table_fill_height: "Month table: fill available screen height",
   l_month_table_saturday_color: "Month table: Saturday color",
   l_month_table_sunday_color: "Month table: Sunday color",
+  l_month_table_weekend_full_row: "Weekend color across the entire day row",
+  l_month_table_marker_full_row: "Marking calendar color across the entire day row",
+  h_month_table_weekend_full_row:
+    "Also tints person cells with the Saturday/Sunday color. Independent of calendar row highlighting. Off by default.",
+  h_month_table_marker_full_row:
+    "Also tints person cells with the selected marking calendar color. Takes precedence over weekend row colors. Off by default.",
   l_month_table_marker_calendars: "Month table: calendars marking the date",
   l_month_table_marker_keep_columns: "Also show marking calendars in person columns",
   l_month_table_marker_mode: "Date marking: display style",
@@ -220,6 +226,12 @@ const DE: Dict = {
   l_month_table_fill_height: "Monatstabelle: verfügbare Bildschirmhöhe ausfüllen",
   l_month_table_saturday_color: "Monatstabelle: Samstagsfarbe",
   l_month_table_sunday_color: "Monatstabelle: Sonntagsfarbe",
+  l_month_table_weekend_full_row: "Wochenendfarbe über die gesamte Tageszeile",
+  l_month_table_marker_full_row: "Farbe des Markierungskalenders über die gesamte Tageszeile",
+  h_month_table_weekend_full_row:
+    "Färbt auch die Personenzellen mit der Samstags-/Sonntagsfarbe. Unabhängig von Kalender-Zeilenfarben. Standardmäßig aus.",
+  h_month_table_marker_full_row:
+    "Färbt auch die Personenzellen mit der Farbe des ausgewählten Markierungskalenders. Hat Vorrang vor Wochenend-Zeilenfarben. Standardmäßig aus.",
   l_month_table_marker_calendars: "Monatstabelle: Kalender als Datumsmarkierungen",
   l_month_table_marker_keep_columns: "Markierungskalender zusätzlich in Personenspalten anzeigen",
   l_month_table_marker_mode: "Datumsmarkierung: Darstellungsart",

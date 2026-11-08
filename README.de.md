@@ -2,7 +2,7 @@
 
 Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.31.2**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
 
-**Fork-Version: `0.31.2-month-table.2`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork-Version: `0.31.2-month-table.3`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Monatstabelle aktivieren
 
@@ -42,7 +42,14 @@ Der Schriftregler skaliert Datum, Namen, Termine und Uhrzeiten gemeinsam. Ohne d
 
 Unter **Layout & Größe** lassen sich Titel/Ansichtswechsel (`header_position`) und Monats-/Wochennavigation (`navigation_position`) unabhängig auf `bottom` verschieben. Mit `navigation_layout: spread` steht das Datum mittig und die Pfeile sitzen an den äußeren Rändern. `equal_view_buttons: true` macht die Ansichtstasten so breit wie die längste sichtbare Beschriftung. Regler steuern Knopfhöhe (28–80 px), Schrift (10–24 px) und Pfeilbreite (28–120 px). `month_table_fill_height: true` füllt freien Platz bis zu den unteren Bedienleisten aus; volle Monate dürfen weiter über den Bildschirm hinausgehen.
 
-Für Feiertage oder andere gemeinsame Termine wähle **Kalender als Datumsmarkierungen**. Eine Personenzuordnung ist dafür nicht erforderlich. Nur das Datumsfeld bekommt eine Tönung und einen farbigen Rand. Darstellungsarten sind `text` (Standard), `chip` oder `indicator`. Mit `month_table_marker_keep_columns: false` (Standard) verschwinden reine Markierungsspalten; in gemischten Personenspalten werden nur die Termine dieser Kalender ausgeblendet. Schalte die Option ein, um die bisherigen Terminspalten zusätzlich zu behalten.
+Für Feiertage oder andere gemeinsame Termine wähle **Kalender als Datumsmarkierungen**. Eine Personenzuordnung ist dafür nicht erforderlich. Standardmäßig bekommt nur das Datumsfeld eine Tönung und einen farbigen Rand. Darstellungsarten sind `text` (Standard), `chip` oder `indicator`. Mit `month_table_marker_keep_columns: false` (Standard) verschwinden reine Markierungsspalten; in gemischten Personenspalten werden nur die Termine dieser Kalender ausgeblendet. Schalte die Option ein, um die bisherigen Terminspalten zusätzlich zu behalten.
+
+Zwei unabhängige Schalter können die Tönung über alle Personenspalten der Tageszeile ziehen:
+
+- **Wochenendfarbe über die gesamte Tageszeile** (`month_table_weekend_full_row: true`) verwendet die vorhandenen Farbwähler für Samstag und Sonntag.
+- **Farbe des Markierungskalenders über die gesamte Tageszeile** (`month_table_marker_full_row: true`) verwendet die Farbe des ausgewählten Markierungskalenders bzw. die eigene Markierungsfarbe.
+
+Beide sind standardmäßig `false`. Sind beide an, hat die Kalenderfarbe an sich überschneidenden Tagen Vorrang. Ist nur die Wochenend-Zeilenfarbe an, kann das Feiertags-Datumsfeld seine Kalenderfarbe behalten, während die Personenzellen die Wochenendtönung erhalten. Terminblöcke behalten ihre eigenen Farben; die Zeilenhöhe bleibt gleich. Die Schalter gelten nur für `month_table`.
 
 ```yaml
 header_position: bottom
@@ -55,8 +62,10 @@ navigation_arrow_width: 60
 month_table_fill_height: true
 month_table_saturday_color: '#4c78ff'
 month_table_sunday_color: '#cc4455'
+month_table_weekend_full_row: true
 month_table_marker_calendars: [calendar.feiertage]
 month_table_marker_mode: text
+month_table_marker_full_row: true
 month_table_marker_keep_columns: false
 month_table_marker_font_size: 11
 month_table_marker_grow: false
@@ -134,7 +143,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Kompakt-Modus** – ein Schalter (`compact`) für kleinere Schriften und engere Abstände, statt drei Regler einzeln zu justieren.
 - **Personen beim Start ausgeblendet** – `hidden: true` pro Person; die Spalte startet eingeklappt und ein Klick auf den Kopf holt sie zurück.
 
-> Status: **v0.31.2-month-table.2 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
+> Status: **v0.31.2-month-table.3 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
 
 ## Installation
 
@@ -143,7 +152,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 Verwende `dist/ha-family-board-card-month-table.js` aus diesem Fork oder baue die Datei mit `npm ci && npm run build`. Kopiere sie nach `/config/www/ha-family-board-card-month-table.js` und füge diese Dashboard-Ressource hinzu:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.2
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.3
 type: module
 ```
 
