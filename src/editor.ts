@@ -221,6 +221,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       );
       layout.push(
         ...MONTH_COLORS.slice(0, 2).map((name) => ({ name, selector: { color_rgb: {} } })),
+        { name: "month_table_weekend_full_row", selector: { boolean: {} } },
         {
           name: "month_table_marker_calendars",
           selector: { entity: { filter: { domain: "calendar" }, multiple: true } },
@@ -239,6 +240,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
           },
         },
         { name: "month_table_marker_color", selector: { color_rgb: {} } },
+        { name: "month_table_marker_full_row", selector: { boolean: {} } },
       );
       if (cfg.month_table_marker_mode !== "indicator") {
         layout.push(
@@ -449,6 +451,8 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         "fit_height",
         "month_table_full_height",
         "month_table_fill_height",
+        "month_table_weekend_full_row",
+        "month_table_marker_full_row",
         "header_position",
         "navigation_position",
         "navigation_layout",

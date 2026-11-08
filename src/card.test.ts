@@ -1275,3 +1275,90 @@ it("reuses calendar data for layout changes and reapplies changed event filters"
   expect(all(".has-markers")).toHaveLength(0);
   expect(apiPaths).toHaveLength(2);
 });
+
+describe("month-table full-row colors", () => {
+  const base: Partial<FamilyBoardConfig> = {
+    view: "month_table",
+    persons: [
+      { name: "Anna", calendar: "calendar.anna" },
+      { name: "Ben", calendar: "calendar.ben" },
+    ],
+    month_table_saturday_color: "#123456",
+    month_table_sunday_color: "#abcdef",
+    month_table_marker_calendars: ["calendar.holiday"],
+    calendars: { "calendar.holiday": { color: "#ff8800" } },
+    month_table_marker_mode: "indicator",
+  };
+  const opts = {
+    now: "2026-12-01T10:00:00",
+    calendars: {
+      "calendar.holiday": [
+        allDay("Feiertag", "2026-12-24", "2026-12-25"),
+        allDay("Feiertag am Samstag", "2026-12-26", "2026-12-27"),
+      ],
+    },
+  };
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true],
+  ])("applies weekend=%s and marker=%s row colors independently", async (weekend, marker) => {
+    const { all } = await mount(
+      { ...base, month_table_weekend_full_row: weekend, month_table_marker_full_row: marker },
+      opts,
+    );
+    const rowColors = (day: number) =>
+      all(".wcell")
+        .slice((day - 1) * 2, day * 2)
+        .map((cell) => (cell as HTMLElement).style.getPropertyValue("--fb-row-highlight"));
+    expect(rowColors(5)).toEqual(weekend ? ["#123456", "#123456"] : ["", ""]);
+    expect(rowColors(6)).toEqual(weekend ? ["#abcdef", "#abcdef"] : ["", ""]);
+    expect(rowColors(24)).toEqual(marker ? ["#ff8800", "#ff8800"] : ["", ""]);
+    const overlap = marker ? "#ff8800" : weekend ? "#123456" : "";
+    expect(rowColors(26)).toEqual([overlap, overlap]);
+    expect(rowColors(1)).toEqual(["", ""]);
+    expect((all(".wday")[25] as HTMLElement).style.getPropertyValue("--fb-date-highlight")).toBe(
+      "#ff8800",
+    );
+  });
+  it("keeps row-color options scoped to the month table", async () => {
+    const { all } = await mount(
+      {
+        ...base,
+        view: "week",
+        month_table_weekend_full_row: true,
+        month_table_marker_full_row: true,
+      },
+      opts,
+    );
+    expect(
+      all(".wcell").every(
+        (cell) => !(cell as HTMLElement).style.getPropertyValue("--fb-row-highlight"),
+      ),
+    ).toBe(true);
+  });
+  it("uses the same first-calendar color for the date and the whole row", async () => {
+    const { all } = await mount(
+      {
+        ...base,
+        month_table_marker_calendars: ["calendar.second", "calendar.holiday"],
+        month_table_marker_full_row: true,
+        calendars: { ...base.calendars, "calendar.second": { color: "#00aaff" } },
+      },
+      {
+        ...opts,
+        calendars: {
+          ...opts.calendars,
+          "calendar.second": [allDay("Zweiter Kalender", "2026-12-24", "2026-12-25")],
+        },
+      },
+    );
+    expect((all(".wday")[23] as HTMLElement).style.getPropertyValue("--fb-date-highlight")).toBe(
+      "#00aaff",
+    );
+    expect((all(".wcell")[46] as HTMLElement).style.getPropertyValue("--fb-row-highlight")).toBe(
+      "#00aaff",
+    );
+  });
+});
