@@ -18,6 +18,12 @@ interface PersonConfig {
 const VIEW_VALUES = ["now", "day", "timeline", "week", "month", "month_table", "agenda"];
 /** What the card shows when `views` is unset ("now" and "month_table" are opt-in). */
 const DEFAULT_VIEWS = ["day", "timeline", "week", "month", "agenda"];
+const MONTH_COLORS = [
+  "month_table_saturday_color",
+  "month_table_sunday_color",
+  "month_table_marker_color",
+  "month_table_marker_text_color",
+] as const;
 
 // One ha-form per person row, with entity pickers filtered by domain.
 const PERSON_SCHEMA = [
@@ -93,11 +99,24 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
 
   /** True when nothing meaningful is configured yet -> show the wizard. */
   private get _isFresh(): boolean {
-    return !this._persons.some((p) => p.name || p.person || p.calendar);
+    return (
+      !this._persons.some((p) => p.name || p.person || p.calendar) &&
+      !this._config.family_calendars?.length &&
+      !this._config.month_table_marker_calendars?.length
+    );
   }
 
   private get _settingsData() {
-    return { ...this._config, time_grid: String(this._config.time_grid ?? 30) };
+    const data: Record<string, unknown> = {
+      ...this._config,
+      time_grid: String(this._config.time_grid ?? 30),
+    };
+    for (const key of MONTH_COLORS) {
+      const hex = this._config[key];
+      if (typeof hex === "string" && /^#[0-9a-f]{6}$/i.test(hex))
+        data[key] = [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
+    }
+    return data;
   }
 
   /** Grouped settings schema; irrelevant fields are hidden contextually. */
@@ -152,10 +171,41 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
     layout.push(
       { name: "slim_header", selector: { boolean: {} } },
       { name: "full_height", selector: { boolean: {} } },
+      ...["header_position", "navigation_position"].map((name) => ({
+        name,
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: ["top", "bottom"].map((value) => ({ value, label: this._t(`o_${value}`) })),
+          },
+        },
+      })),
+      {
+        name: "navigation_layout",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: ["compact", "spread"].map((value) => ({
+              value,
+              label: this._t(`o_nav_${value}`),
+            })),
+          },
+        },
+      },
+      { name: "equal_view_buttons", selector: { boolean: {} } },
+      ...[
+        { name: "controls_height", min: 28, max: 80 },
+        { name: "controls_font_size", min: 10, max: 24 },
+        { name: "navigation_arrow_width", min: 28, max: 120 },
+      ].map(({ name, ...range }) => ({
+        name,
+        selector: { number: { ...range, mode: "slider", unit_of_measurement: "px" } },
+      })),
     );
     if (hasMonthTable) {
       layout.push(
         { name: "month_table_full_height", selector: { boolean: {} } },
+        { name: "month_table_fill_height", selector: { boolean: {} } },
         { name: "month_table_inline_date", selector: { boolean: {} } },
         { name: "month_table_compact_header", selector: { boolean: {} } },
         ...[
@@ -163,10 +213,39 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
           { name: "month_table_row_height", min: 16, max: 96, step: 1 },
           { name: "month_table_row_padding", min: 0, max: 12, step: 1 },
           { name: "month_table_event_gap", min: 0, max: 12, step: 1 },
+          { name: "month_table_date_width", min: 92, max: 280, step: 1 },
         ].map(({ name, ...range }) => ({
           name,
           selector: { number: { ...range, mode: "slider", unit_of_measurement: "px" } },
         })),
+      );
+      layout.push(
+        ...MONTH_COLORS.slice(0, 2).map((name) => ({ name, selector: { color_rgb: {} } })),
+        {
+          name: "month_table_marker_calendars",
+          selector: { entity: { filter: { domain: "calendar" }, multiple: true } },
+        },
+        { name: "month_table_marker_keep_columns", selector: { boolean: {} } },
+        {
+          name: "month_table_marker_mode",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: ["text", "chip", "indicator"].map((value) => ({
+                value,
+                label: this._t(`o_marker_${value}`),
+              })),
+            },
+          },
+        },
+        ...MONTH_COLORS.slice(2).map((name) => ({ name, selector: { color_rgb: {} } })),
+        {
+          name: "month_table_marker_font_size",
+          selector: {
+            number: { min: 8, max: 22, step: 1, mode: "slider", unit_of_measurement: "px" },
+          },
+        },
+        { name: "month_table_marker_grow", selector: { boolean: {} } },
       );
     }
 
@@ -178,6 +257,10 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       { name: "scroll_to_now", selector: { boolean: {} } },
       { name: "show_now_line", selector: { boolean: {} } },
       { name: "show_progress", selector: { boolean: {} } },
+      {
+        name: "family_calendars",
+        selector: { entity: { filter: { domain: "calendar" }, multiple: true } },
+      },
       { name: "weather_entity", selector: { entity: { filter: { domain: "weather" } } } },
       { name: "map_url", selector: { text: {} } },
     ];
@@ -310,6 +393,24 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
   private _settingsChanged(ev: CustomEvent): void {
     ev.stopPropagation();
     const next = { ...ev.detail.value };
+    for (const key of MONTH_COLORS) {
+      const value = next[key];
+      if (
+        Array.isArray(value) &&
+        value.length === 3 &&
+        value.every((part) => typeof part === "number" && Number.isFinite(part))
+      ) {
+        next[key] =
+          "#" +
+          value
+            .map((part) =>
+              Math.max(0, Math.min(255, Math.round(part)))
+                .toString(16)
+                .padStart(2, "0"),
+            )
+            .join("");
+      }
+    }
     if (typeof next.time_grid === "string") next.time_grid = Number(next.time_grid);
     // keep persons + calendars untouched by the settings form
     this._emit({
@@ -342,6 +443,15 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         "full_height",
         "fit_height",
         "month_table_full_height",
+        "month_table_fill_height",
+        "header_position",
+        "navigation_position",
+        "navigation_layout",
+        "equal_view_buttons",
+        "controls_height",
+        "controls_font_size",
+        "navigation_arrow_width",
+        "month_table_date_width",
         "month_table_inline_date",
         "month_table_compact_header",
         "month_table_font_size",
@@ -429,6 +539,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
   /* ---- calendars mapping ------------------------------------------ */
   private _calsUsed(): string[] {
     const all: string[] = [];
+    all.push(...(this._config.month_table_marker_calendars ?? []));
     for (const p of this._persons) {
       const cals = Array.isArray(p.calendar) ? p.calendar : p.calendar ? [p.calendar] : [];
       for (const c of cals) if (c && !all.includes(c)) all.push(c);

@@ -7,6 +7,46 @@ type Dict = Record<string, string>;
 
 /** Field labels (`l_<option>`), helper texts (`h_<option>`) and UI strings. */
 const EN: Dict = {
+  l_header_position: "Title and view buttons: position",
+  l_navigation_position: "Month/week navigation: position",
+  l_navigation_layout: "Navigation button arrangement",
+  l_equal_view_buttons: "View buttons: all as wide as the longest label",
+  l_controls_height: "Button minimum height",
+  l_controls_font_size: "Button font size",
+  l_navigation_arrow_width: "Navigation arrow minimum width",
+  l_month_table_fill_height: "Month table: fill available screen height",
+  l_month_table_saturday_color: "Month table: Saturday color",
+  l_month_table_sunday_color: "Month table: Sunday color",
+  l_month_table_marker_calendars: "Month table: calendars marking the date",
+  l_month_table_marker_keep_columns: "Also show marking calendars in person columns",
+  l_month_table_marker_mode: "Date marking: display style",
+  l_month_table_marker_color: "Date marking: custom highlight color",
+  l_month_table_marker_text_color: "Date marking: text color",
+  l_month_table_marker_font_size: "Date marking: font size",
+  l_month_table_marker_grow: "Allow marking text to increase row height",
+  l_month_table_date_width: "Month table: date column width",
+  h_controls_height: "For touch screens, try 44 px. Empty keeps the existing size.",
+  h_month_table_fill_height:
+    "Stretches short months to the bottom of the screen; busy rows may need more space.",
+  h_month_table_marker_calendars:
+    "Any calendar, including ones not assigned to a person. Selected sources mark only the date field.",
+  h_month_table_marker_keep_columns:
+    "Off hides dedicated columns and those events from mixed-calendar columns in this view.",
+  h_month_table_marker_color:
+    "Empty uses the calendar mapping color, then the person color. First selected calendar wins on overlaps.",
+  h_month_table_marker_grow:
+    "Off: text uses spare row space and is clipped when needed; color and tooltip stay visible. On: rows grow to show all text.",
+  h_month_table_date_width:
+    "92–280 px. Marking text never widens the column automatically; default with markings: 140 px.",
+  h_month_table_saturday_color: "Tint for Saturday date fields; calendar markings take precedence.",
+  h_month_table_sunday_color: "Tint for Sunday date fields; calendar markings take precedence.",
+  o_top: "Top",
+  o_bottom: "Bottom",
+  o_nav_compact: "Together",
+  o_nav_spread: "Left arrow / centered date / right arrow",
+  o_marker_text: "Text below the date",
+  o_marker_chip: "Event chip below the date",
+  o_marker_indicator: "Color indicator only",
   /* ---- field labels ---------------------------------------------- */
   l_title: "Card title",
   l_refresh_interval: "Auto refresh (sec., 0 = off)",
@@ -51,6 +91,7 @@ const EN: Dict = {
   l_show_alerts: "Day check (double bookings, gaps, nobody home)",
   l_gap_min: "Flag a gap from (min., 0 = off)",
   l_drag_drop: "Move events by dragging (day view)",
+  l_family_calendars: "Family calendars",
   l_weather_entity: "Weather entity",
   l_show_weather: "Show weather",
   l_hide_empty_persons: "Week/month table: hide persons without events",
@@ -97,6 +138,8 @@ const EN: Dict = {
   h_month_table_event_gap: "Vertical space between events in a cell. Default: 3 px",
   h_trim_hours: "Shows only the hours that actually contain events",
   h_col_min_width: "Below this the board scrolls horizontally",
+  h_family_calendars:
+    "Calendars for everyone – holidays, bin collection, school holidays. Shown above the people, never counted as a double booking",
   h_weather_entity: "Daily forecast in the header (HA location)",
   h_auto_icons: "e.g. doctor → 🩺, sport → 🏃, birthday → 🎂 (titles with emoji stay untouched)",
   h_icon_patterns: "Own rules, e.g. “Grandma => 👵”",
@@ -167,6 +210,48 @@ const EN: Dict = {
 };
 
 const DE: Dict = {
+  l_header_position: "Titel und Ansichtswechsel: Position",
+  l_navigation_position: "Monats-/Wochennavigation: Position",
+  l_navigation_layout: "Anordnung der Navigationsknöpfe",
+  l_equal_view_buttons: "Ansichtstasten: alle so breit wie die längste Beschriftung",
+  l_controls_height: "Mindesthöhe der Schaltflächen",
+  l_controls_font_size: "Schriftgröße der Schaltflächen",
+  l_navigation_arrow_width: "Mindestbreite der Navigationspfeile",
+  l_month_table_fill_height: "Monatstabelle: verfügbare Bildschirmhöhe ausfüllen",
+  l_month_table_saturday_color: "Monatstabelle: Samstagsfarbe",
+  l_month_table_sunday_color: "Monatstabelle: Sonntagsfarbe",
+  l_month_table_marker_calendars: "Monatstabelle: Kalender als Datumsmarkierungen",
+  l_month_table_marker_keep_columns: "Markierungskalender zusätzlich in Personenspalten anzeigen",
+  l_month_table_marker_mode: "Datumsmarkierung: Darstellungsart",
+  l_month_table_marker_color: "Datumsmarkierung: eigene Markierungsfarbe",
+  l_month_table_marker_text_color: "Datumsmarkierung: Textfarbe",
+  l_month_table_marker_font_size: "Datumsmarkierung: Schriftgröße",
+  l_month_table_marker_grow: "Zeilen für Markierungstext vergrößern",
+  l_month_table_date_width: "Monatstabelle: Breite der Datumsspalte",
+  h_controls_height: "Für Touchscreens z. B. 44 px. Leer behält die bisherige Größe bei.",
+  h_month_table_fill_height:
+    "Streckt kurze Tabellen bis zum Bildschirmende; volle Zeilen dürfen mehr Platz benötigen.",
+  h_month_table_marker_calendars:
+    "Beliebige Kalender, auch ohne Personenzuordnung. Markiert wird nur das Datumsfeld.",
+  h_month_table_marker_keep_columns:
+    "Aus blendet reine Markierungsspalten und deren Termine in gemischten Personenspalten in dieser Ansicht aus.",
+  h_month_table_marker_color:
+    "Leer verwendet die Kalenderfarbe, danach die Personenfarbe. Bei Überschneidungen hat der zuerst ausgewählte Kalender Vorrang.",
+  h_month_table_marker_grow:
+    "Aus: Text nutzt freien Zeilenplatz und wird bei Platzmangel gekürzt; Farbe und Tooltip bleiben sichtbar. An: Zeilen wachsen für den Text mit.",
+  h_month_table_date_width:
+    "92–280 px. Markierungstext verbreitert die Spalte nicht automatisch; Standard mit Markierungen: 140 px.",
+  h_month_table_saturday_color:
+    "Tönung der Datumsfelder am Samstag; Kalender-Markierungen haben Vorrang.",
+  h_month_table_sunday_color:
+    "Tönung der Datumsfelder am Sonntag; Kalender-Markierungen haben Vorrang.",
+  o_top: "Oben",
+  o_bottom: "Unten",
+  o_nav_compact: "Zusammen",
+  o_nav_spread: "Pfeil links / Datum mittig / Pfeil rechts",
+  o_marker_text: "Text unter dem Datum",
+  o_marker_chip: "Terminblock unter dem Datum",
+  o_marker_indicator: "Nur Farbhinweis",
   l_title: "Kartentitel",
   l_refresh_interval: "Auto-Aktualisierung (Sek., 0 = aus)",
   l_view: "Standardansicht",
@@ -210,6 +295,7 @@ const DE: Dict = {
   l_show_alerts: "Tages-Check (Doppelbuchung, Lücken, niemand zuhause)",
   l_gap_min: "Lücke melden ab (Min., 0 = aus)",
   l_drag_drop: "Termine per Ziehen verschieben (Tagesansicht)",
+  l_family_calendars: "Familien-Kalender",
   l_weather_entity: "Wetter-Entität",
   l_show_weather: "Wetter anzeigen",
   l_hide_empty_persons: "Woche/Monatstabelle: Personen ohne Termine ausblenden",
@@ -257,6 +343,8 @@ const DE: Dict = {
   h_month_table_event_gap: "Vertikaler Abstand zwischen Terminen in einer Zelle. Standard: 3 px",
   h_trim_hours: "Zeigt nur die Stunden, in denen wirklich Termine liegen",
   h_col_min_width: "Darunter wird horizontal gescrollt",
+  h_family_calendars:
+    "Kalender für alle – Feiertage, Müllabfuhr, Schulferien. Erscheinen über den Personen und zählen nie als Doppelbuchung",
   h_weather_entity: "Tages-Vorhersage im Kopf (HA-Standort)",
   h_auto_icons: "z. B. Arzt → 🩺, Sport → 🏃, Geburtstag → 🎂 (Titel mit Emoji bleiben unberührt)",
   h_icon_patterns: "eigene Regeln, z. B. „Oma => 👵“",

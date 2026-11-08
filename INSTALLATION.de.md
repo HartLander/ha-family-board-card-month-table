@@ -1,7 +1,7 @@
 # Family Board Card mit Monatstabelle
 
-Dieser Fork von [renespeaker/ha-family-board-card](https://github.com/renespeaker/ha-family-board-card) basiert auf Upstream-Version 0.30.0.
-Version des Forks: **0.30.0-month-table.4**.
+Dieser Fork von [renespeaker/ha-family-board-card](https://github.com/renespeaker/ha-family-board-card) basiert auf Upstream-Version 0.31.2.
+Version des Forks: **0.31.2-month-table.1**.
 
 ## Neue Ansicht
 
@@ -68,6 +68,11 @@ Ohne `month_table_font_size` gelten weiterhin die allgemeinen Schrift- und Theme
 
 ## Installation einer separaten Testdatei
 
+Die zusätzlichen Optionen für untere Bedienleisten, gleich breite Tasten,
+Wochenendfarben und Feiertagsmarkierungen sind mit einem vollständigen
+[Konfigurationsbeispiel in der deutschen README](README.de.md#bedienleisten-und-datumsmarkierungen-fürs-wanddisplay)
+beschrieben. Alle Einstellungen sind auch unter **Layout & Größe** verfügbar.
+
 1. Entpacke dieses ZIP. Die fertige Datei liegt unter
    **`dist/ha-family-board-card-month-table.js`**. Du musst sie nicht selbst kompilieren.
 2. Kopiere sie nach **`/config/www/ha-family-board-card-month-table.js`** auf deinem
@@ -75,7 +80,7 @@ Ohne `month_table_font_size` gelten weiterhin die allgemeinen Schrift- und Theme
 3. Ergänze in den Dashboard-Ressourcen die eigene Datei des Forks:
 
    ```yaml
-   url: /local/ha-family-board-card-month-table.js?v=0.30.0-month-table.4
+   url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.1
    type: module
    ```
 
@@ -87,13 +92,13 @@ Ohne `month_table_font_size` gelten weiterhin die allgemeinen Schrift- und Theme
    `custom:family-board-card-month-table` und einen eigenen Editor. Das Original
    verwendet weiterhin `custom:family-board-card`. Behalte seinen Eintrag bei.
 
-   Beim Umstieg von Fork-Version `.1` den alten Fork-Eintrag mit
+   Beim Umstieg von Fork-Version `0.30.0-month-table.1` den alten Fork-Eintrag mit
    `/local/family-board-month-table.js` oder
    `/hacsfiles/ha-family-board-card-month-table/ha-family-board-card.js` entfernen.
    Dieses alte Bundle belegt noch den Namen des Originals.
 4. Lade den Home-Assistant-Browser vollständig neu. Bei Bedarf Browsercache
    bzw. Frontendcache der Companion-App aktualisieren. Die Browserkonsole
-   zeigt bei erfolgreichem Laden `v0.30.0-month-table.4`.
+   zeigt bei erfolgreichem Laden `v0.31.2-month-table.1`.
 5. Kopiere für einen direkten Vergleich deine vorhandene Karte und ändere in
    der Kopie den Typ und die Ansicht:
 
