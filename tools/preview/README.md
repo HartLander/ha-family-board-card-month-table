@@ -30,6 +30,10 @@ Zeilenfarben für Wochenenden und Markierungskalender, inklusive Vorrang bei
 Datumsspaltenbreite beim Hinzufügen langer Familien-/Markierungskalendertexte,
 alle vier Markierungsstile, deren unabhängige Auswahl und große Datumsschrift.
 
+`BROWSER_CHECK_GROUP=highlight-sliders npm run check:browser` prüft Linienstärke
+und Deckkraft getrennt für Wochenenden/Kalender, inklusive 0/100 %, Wertegrenzen,
+Datums-/Zeilenmarkierung und unveränderter Geometrie in hellem/dunklem Theme.
+
 Die Monatstabelle wird außerdem mit ein- und zweizeiligem Datum, minimalen und
 maximalen Schrift-/Abstandswerten und kompakten Personenüberschriften geprüft.
 `MONTH_TABLE_DENSITY_SCREENSHOT=/tmp/month-table-compact.png` speichert beim

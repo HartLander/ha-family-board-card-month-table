@@ -1,7 +1,11 @@
 import { LitElement, html, css, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCardEditor } from "custom-card-helpers";
-import { autoDetectPersons, FALLBACK_COLORS } from "./ha-family-board-card";
+import {
+  autoDetectPersons,
+  FALLBACK_COLORS,
+  monthTableHighlightSettings,
+} from "./ha-family-board-card";
 import type { FamilyBoardConfig } from "./ha-family-board-card";
 import { langOf, localize } from "./localize";
 import { et } from "./editor-i18n";
@@ -111,6 +115,15 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       ...this._config,
       time_grid: String(this._config.time_grid ?? 30),
     };
+    if (this._config.view === "month_table" || this._config.views?.includes("month_table")) {
+      for (const marker of [false, true]) {
+        const appearance = monthTableHighlightSettings(this._config, marker);
+        const prefix = marker ? "month_table_marker" : "month_table_weekend";
+        if (appearance.style !== "background") data[`${prefix}_line_width`] = appearance.lineWidth;
+        if (appearance.style === "background" || appearance.style === "both")
+          data[`${prefix}_background_opacity`] = appearance.opacity;
+      }
+    }
     for (const key of MONTH_COLORS) {
       const hex = this._config[key];
       if (typeof hex === "string" && /^#[0-9a-f]{6}$/i.test(hex))
@@ -203,6 +216,32 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       })),
     );
     if (hasMonthTable) {
+      const appearanceFields = (marker: boolean) => {
+        const { style } = monthTableHighlightSettings(cfg, marker);
+        const prefix = marker ? "month_table_marker" : "month_table_weekend";
+        return [
+          ...(style !== "background"
+            ? [
+                {
+                  name: `${prefix}_line_width`,
+                  selector: {
+                    number: { min: 0, max: 12, step: 1, mode: "slider", unit_of_measurement: "px" },
+                  },
+                },
+              ]
+            : []),
+          ...(style === "background" || style === "both"
+            ? [
+                {
+                  name: `${prefix}_background_opacity`,
+                  selector: {
+                    number: { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" },
+                  },
+                },
+              ]
+            : []),
+        ];
+      };
       const styleField = (name: string) => ({
         name,
         selector: {
@@ -234,6 +273,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       layout.push(
         ...MONTH_COLORS.slice(0, 2).map((name) => ({ name, selector: { color_rgb: {} } })),
         styleField("month_table_weekend_style"),
+        ...appearanceFields(false),
         { name: "month_table_weekend_full_row", selector: { boolean: {} } },
         {
           name: "month_table_marker_calendars",
@@ -254,6 +294,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         },
         { name: "month_table_marker_color", selector: { color_rgb: {} } },
         styleField("month_table_marker_style"),
+        ...appearanceFields(true),
         { name: "month_table_marker_full_row", selector: { boolean: {} } },
       );
       if (cfg.month_table_marker_mode !== "indicator") {
@@ -469,6 +510,10 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         "month_table_marker_full_row",
         "month_table_weekend_style",
         "month_table_marker_style",
+        "month_table_weekend_line_width",
+        "month_table_weekend_background_opacity",
+        "month_table_marker_line_width",
+        "month_table_marker_background_opacity",
         "header_position",
         "navigation_position",
         "navigation_layout",

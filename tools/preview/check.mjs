@@ -71,6 +71,80 @@ async function finish() {
   process.exit(failures.length ? 1 : 0);
 }
 
+/* --- source-specific line thickness and opacity -------------------- */
+if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "highlight-sliders") {
+for (const [width,dark] of [[400,false],[1080,true]]) {
+  const {page,errors}=await open({view:"month_table",width,height:1920,slim:true,dark,
+    time:new Date("2026-12-24T10:00:00+01:00"),timezoneId:"Europe/Berlin"});
+  await page.evaluate(async()=>{
+    const card=document.querySelector("family-board-card-month-table"),read=card.hass.callApi;
+    card.hass={...card.hass,callApi:async(method,path)=>path.startsWith("calendars/calendar.muell?")
+      ? [2,26].map(day=>({uid:String(day),summary:"Feiertag",start:{date:`2026-12-${String(day).padStart(2,"0")}`},end:{date:`2026-12-${String(day+1).padStart(2,"0")}`}})):read(method,path)};
+    card.setConfig({...card._config,family_calendars:undefined,month_table_marker_calendars:["calendar.muell"],
+      month_table_marker_mode:"indicator",month_table_marker_color:"#ff8800",month_table_saturday_color:"#3366ff",
+      month_table_weekend_style:"both",month_table_marker_style:"both",month_table_weekend_full_row:true,month_table_marker_full_row:true,
+      month_table_full_height:true,month_table_inline_date:true,month_table_font_size:12,month_table_row_height:32,month_table_row_padding:1});
+    await card.updateComplete;
+  });
+  const configure=async patch=>{await page.evaluate(async patch=>{const card=document.querySelector("family-board-card-month-table");
+    card.setConfig({...card._config,...patch});await card.updateComplete;},patch);await page.waitForTimeout(100);};
+  const measure=()=>page.evaluate(()=>{
+    const card=document.querySelector("family-board-card-month-table"),root=card.renderRoot;
+    const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");canvas.width=canvas.height=1;
+    const rgba=css=>{ctx.clearRect(0,0,1,1);ctx.fillStyle=css;ctx.fillRect(0,0,1,1);return [...ctx.getImageData(0,0,1,1).data];};
+    const style=el=>{const s=getComputedStyle(el);return {rgba:rgba(s.backgroundColor),shadow:s.boxShadow==="none"?null:(s.boxShadow.match(/-?[\d.]+px/g)||[]).slice(0,2).map(parseFloat)};};
+    const dates=[...root.querySelectorAll(".wday")],cells=[...root.querySelectorAll(".wcell")],n=root.querySelectorAll(".wphead").length;
+    const row=day=>({date:style(dates[day-1]),cells:cells.slice((day-1)*n,day*n).map(style)});
+    return {base:rgba(getComputedStyle(card).getPropertyValue("--card-background-color").trim()),weekend:row(5),marker:row(2),overlap:row(26),
+      heights:dates.map(date=>date.getBoundingClientRect().height),width:dates[0].getBoundingClientRect().width,
+      events:[...root.querySelectorAll(".wchip")].map(style),outerOverflow:card.scrollWidth-card.clientWidth};
+  });
+  const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  const mix=(color,base,opacity)=>color.map((part,index)=>index===3?255:Math.round(part*opacity/100+base[index]*(100-opacity)/100));
+  const close=(a,b)=>a.length===b.length&&a.every((value,index)=>Math.abs(value-b[index])<=1);
+  const orange=[255,136,0,255],blue=[51,102,255,255];
+  const valid=(row,color,base,line,opacity,underline=false,full=true)=>{
+    const background=opacity>0&&!underline;
+    const expected=background?mix(color,base,opacity):base;
+    const shadow=line>0?(underline?[0,-line]:[line,0]):null;
+    return close(row.date.rgba,expected)&&same(row.date.shadow,shadow)&&row.cells.every(cell=>
+      (full&&background?close(cell.rgba,expected):cell.rgba[3]===0)&&same(cell.shadow,full&&underline&&line>0?[0,-line]:null));
+  };
+  await configure({});
+  const baseline=await measure();
+  const label=`${width}px, ${dark?"dunkel":"hell"}`;
+  check(`Bisherige Linien- und Deckkraftwerte bleiben Standard (${label})`,valid(baseline.weekend,blue,baseline.base,4,24)&&valid(baseline.marker,orange,baseline.base,4,24));
+  await configure({month_table_weekend_line_width:1,month_table_weekend_background_opacity:15,month_table_marker_line_width:9,month_table_marker_background_opacity:65});
+  const custom=await measure();
+  check(`Eigene Linienstärken und Deckkräfte bleiben getrennt (${label})`,valid(custom.weekend,blue,custom.base,1,15)&&valid(custom.marker,orange,custom.base,9,65),JSON.stringify(custom.marker.date));
+  check(`Kalenderwerte haben bei Überschneidungen Vorrang (${label})`,valid(custom.overlap,orange,custom.base,9,65));
+  await configure({month_table_weekend_full_row:false,month_table_marker_full_row:false});
+  const datesOnly=await measure();
+  check(`Regler wirken auch ohne Zeilenmarkierung (${label})`,valid(datesOnly.weekend,blue,datesOnly.base,1,15,false,false)&&valid(datesOnly.marker,orange,datesOnly.base,9,65,false,false));
+  await configure({month_table_weekend_full_row:true,month_table_marker_full_row:true,month_table_weekend_style:"underline",month_table_marker_style:"underline"});
+  const underlined=await measure();
+  check(`Untere Linien verwenden dieselbe Stärke in allen Zellen (${label})`,valid(underlined.weekend,blue,underlined.base,1,0,true)&&valid(underlined.marker,orange,underlined.base,9,0,true));
+  await configure({month_table_weekend_style:"both",month_table_marker_style:"both",month_table_weekend_line_width:0,month_table_marker_line_width:0,month_table_weekend_background_opacity:0,month_table_marker_background_opacity:0});
+  const zero=await measure();
+  check(`Null blendet Linien und Hintergründe vollständig aus (${label})`,valid(zero.weekend,blue,zero.base,0,0)&&valid(zero.marker,orange,zero.base,0,0));
+  await configure({month_table_weekend_line_width:12,month_table_weekend_background_opacity:100});
+  const maximum=await measure();
+  check(`Maximale Stärke und volle Deckkraft bei getrennten Kalenderwerten (${label})`,valid(maximum.weekend,blue,maximum.base,12,100)&&valid(maximum.marker,orange,maximum.base,0,0));
+  await configure({month_table_weekend_line_width:-99,month_table_weekend_background_opacity:999,month_table_marker_line_width:999,month_table_marker_background_opacity:-99});
+  const bounded=await measure();
+  check(`YAML-Werte werden auch beim Rendern begrenzt (${label})`,valid(bounded.weekend,blue,bounded.base,0,100)&&valid(bounded.marker,orange,bounded.base,12,0));
+  await configure({month_table_weekend_line_width:null,month_table_marker_line_width:null,month_table_weekend_background_opacity:"invalid",month_table_marker_background_opacity:null});
+  const defaults=await measure();
+  check(`Ungültige Werte stellen die bisherigen Standardwerte her (${label})`,valid(defaults.weekend,blue,defaults.base,4,24)&&valid(defaults.marker,orange,defaults.base,4,24));
+  await configure({month_table_weekend_style:"underline",month_table_marker_style:"underline",month_table_weekend_line_width:undefined,month_table_marker_line_width:undefined});
+  const defaultLines=await measure();
+  check(`Untere Linien bleiben ohne Reglerwert drei Pixel stark (${label})`,valid(defaultLines.weekend,blue,defaultLines.base,3,0,true)&&valid(defaultLines.marker,orange,defaultLines.base,3,0,true));
+  check(`Regler ändern weder Breite noch Zeilenhöhen oder Terminfarben (${label})`,same(defaultLines.heights,baseline.heights)&&same(defaultLines.events,baseline.events)&&defaultLines.width===baseline.width&&defaultLines.outerOverflow===0&&errors.length===0,errors.join(" | "));
+  await page.close();
+}
+}
+if(process.env.BROWSER_CHECK_GROUP==="highlight-sliders")await finish();
+
 /* --- calendars must not widen dates; styles stay independent -------- */
 if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "styles-width") {
 for (const width of [400, 1080]) {

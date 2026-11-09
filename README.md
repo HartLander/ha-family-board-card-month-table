@@ -2,7 +2,7 @@
 
 This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.31.2**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` and registers a separate card, `custom:family-board-card-month-table`. You can load both cards together and compare them using the same calendar configuration.
 
-**Fork version: `0.31.2-month-table.4`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork version: `0.31.2-month-table.5`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Enable the month table
 
@@ -52,6 +52,19 @@ Two independent switches can extend these tints across all person columns in the
 Both default to `false`. When both are on, the marking calendar color takes precedence on overlapping days. With only weekend row colors enabled, a holiday date field can retain its calendar color while person cells use the weekend tint. Event chips retain their own colors, and row heights remain the same. These switches affect only `month_table`.
 
 **Calendar marking style** (`month_table_marker_style`) and **Weekend highlighting style** (`month_table_weekend_style`) independently offer `line` (left accent), `background`, `both`, and `underline` (bottom line). Defaults preserve the existing look: `both` for calendar markings and `background` for weekends. Full-row highlighting extends backgrounds and bottom lines across person cells; a left accent stays at the date field. The style controls the date/row highlight; text and event-chip labels are selected separately via `month_table_marker_mode`.
+
+Separate sliders adjust line thickness (0–12 px) and background opacity (0–100%) for weekends and calendar markings. They appear for the selected style: line thickness for left/bottom lines, opacity for backgrounds, both for `both`. The controls apply to date/row highlights; event chips keep their own styling. Defaults remain 4 px for left lines, 3 px for bottom lines and 24% background opacity. Zero hides the corresponding decoration. The editor displays the current effective defaults and retains each source's values when switching styles.
+
+```yaml
+month_table_weekend_style: both
+month_table_weekend_line_width: 2
+month_table_weekend_background_opacity: 15
+month_table_marker_style: both
+month_table_marker_line_width: 6
+month_table_marker_background_opacity: 50
+```
+
+These values also apply when full-row highlighting is enabled. Calendar values take precedence on overlapping dates, as with the existing color settings. Out-of-range YAML values are bounded; invalid values fall back to defaults. Removing the options restores the defaults for the selected style.
 
 Adding a calendar no longer changes the date-column width. The minimum is consistently 92 px, adjustable via `month_table_date_width` (92–280 px). Long calendar labels are contained within the column, including when rows may grow for text; larger date fonts can still widen the column to keep the date readable.
 
@@ -147,7 +160,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Compact mode** – one switch (`compact`) for smaller fonts and tighter spacing instead of adjusting three sliders.
 - **People hidden on start** – `hidden: true` per person; the column starts collapsed and a click on the header brings it back.
 
-> Status: **v0.31.2-month-table.4 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
+> Status: **v0.31.2-month-table.5 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
 
 ## Installation
 
@@ -156,7 +169,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 Use `dist/ha-family-board-card-month-table.js` from this fork, or build it with `npm ci && npm run build`. Copy it to `/config/www/ha-family-board-card-month-table.js` and add this dashboard resource:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.4
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.5
 type: module
 ```
 
