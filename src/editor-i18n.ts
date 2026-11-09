@@ -7,6 +7,15 @@ type Dict = Record<string, string>;
 
 /** Field labels (`l_<option>`), helper texts (`h_<option>`) and UI strings. */
 const EN: Dict = {
+  l_month_table_weekend_style: "Weekend highlighting style",
+  l_month_table_marker_style: "Calendar marking style",
+  h_month_table_weekend_style: "Left line, background, both or underline. Default: background.",
+  h_month_table_marker_style:
+    "Default: left line and background. Full-row highlighting extends backgrounds and underlines; the left line stays at the date.",
+  o_highlight_line: "Left line only",
+  o_highlight_background: "Background only",
+  o_highlight_both: "Left line and background",
+  o_highlight_underline: "Underline",
   l_header_position: "Title and view buttons: position",
   l_navigation_position: "Month/week navigation: position",
   l_navigation_layout: "Navigation button arrangement",
@@ -20,9 +29,9 @@ const EN: Dict = {
   l_month_table_weekend_full_row: "Weekend color across the entire day row",
   l_month_table_marker_full_row: "Marking calendar color across the entire day row",
   h_month_table_weekend_full_row:
-    "Also tints person cells with the Saturday/Sunday color. Independent of calendar row highlighting. Off by default.",
+    "Extends weekend backgrounds and underlines to person cells. Independent of calendar highlighting. Off by default.",
   h_month_table_marker_full_row:
-    "Also tints person cells with the selected marking calendar color. Takes precedence over weekend row colors. Off by default.",
+    "Extends calendar backgrounds and underlines to person cells. Takes precedence over weekend row colors. Off by default.",
   l_month_table_marker_calendars: "Month table: calendars marking the date",
   l_month_table_marker_keep_columns: "Also show marking calendars in person columns",
   l_month_table_marker_mode: "Date marking: display style",
@@ -30,7 +39,7 @@ const EN: Dict = {
   l_month_table_marker_text_color: "Date marking: text color",
   l_month_table_marker_font_size: "Date marking: font size",
   l_month_table_marker_grow: "Allow marking text to increase row height",
-  l_month_table_date_width: "Month table: date column width",
+  l_month_table_date_width: "Month table: minimum date column width",
   h_controls_height: "For touch screens, try 44 px. Empty keeps the existing size.",
   h_month_table_fill_height:
     "Stretches short months to the bottom of the screen; busy rows may need more space.",
@@ -43,7 +52,7 @@ const EN: Dict = {
   h_month_table_marker_grow:
     "Off: text uses spare row space and is clipped when needed; color and tooltip stay visible. On: rows grow to show all text.",
   h_month_table_date_width:
-    "92–280 px. Marking text never widens the column automatically; default with markings: 140 px.",
+    "92–280 px, default 92 px. Adding calendars never widens the date column; larger date fonts still fit.",
   h_month_table_saturday_color: "Tint for Saturday date fields; calendar markings take precedence.",
   h_month_table_sunday_color: "Tint for Sunday date fields; calendar markings take precedence.",
   o_top: "Top",
@@ -216,6 +225,16 @@ const EN: Dict = {
 };
 
 const DE: Dict = {
+  l_month_table_weekend_style: "Stil der Wochenend-Markierung",
+  l_month_table_marker_style: "Stil der Kalender-Markierung",
+  h_month_table_weekend_style:
+    "Linie links, Hintergrund, beides oder Linie unten. Standard: Hintergrund.",
+  h_month_table_marker_style:
+    "Standard: Linie links und Hintergrund. Die Zeilenoption erweitert Hintergründe und untere Linien; die linke Linie bleibt am Datum.",
+  o_highlight_line: "Nur Linie links",
+  o_highlight_background: "Nur Hintergrund",
+  o_highlight_both: "Linie links und Hintergrund",
+  o_highlight_underline: "Linie unten",
   l_header_position: "Titel und Ansichtswechsel: Position",
   l_navigation_position: "Monats-/Wochennavigation: Position",
   l_navigation_layout: "Anordnung der Navigationsknöpfe",
@@ -229,9 +248,9 @@ const DE: Dict = {
   l_month_table_weekend_full_row: "Wochenendfarbe über die gesamte Tageszeile",
   l_month_table_marker_full_row: "Farbe des Markierungskalenders über die gesamte Tageszeile",
   h_month_table_weekend_full_row:
-    "Färbt auch die Personenzellen mit der Samstags-/Sonntagsfarbe. Unabhängig von Kalender-Zeilenfarben. Standardmäßig aus.",
+    "Erweitert Wochenend-Hintergründe und untere Linien auf die Personenzellen. Unabhängig von Kalender-Markierungen. Standardmäßig aus.",
   h_month_table_marker_full_row:
-    "Färbt auch die Personenzellen mit der Farbe des ausgewählten Markierungskalenders. Hat Vorrang vor Wochenend-Zeilenfarben. Standardmäßig aus.",
+    "Erweitert Kalender-Hintergründe und untere Linien auf die Personenzellen. Hat Vorrang vor Wochenend-Zeilenfarben. Standardmäßig aus.",
   l_month_table_marker_calendars: "Monatstabelle: Kalender als Datumsmarkierungen",
   l_month_table_marker_keep_columns: "Markierungskalender zusätzlich in Personenspalten anzeigen",
   l_month_table_marker_mode: "Datumsmarkierung: Darstellungsart",
@@ -239,7 +258,7 @@ const DE: Dict = {
   l_month_table_marker_text_color: "Datumsmarkierung: Textfarbe",
   l_month_table_marker_font_size: "Datumsmarkierung: Schriftgröße",
   l_month_table_marker_grow: "Zeilen für Markierungstext vergrößern",
-  l_month_table_date_width: "Monatstabelle: Breite der Datumsspalte",
+  l_month_table_date_width: "Monatstabelle: Mindestbreite der Datumsspalte",
   h_controls_height: "Für Touchscreens z. B. 44 px. Leer behält die bisherige Größe bei.",
   h_month_table_fill_height:
     "Streckt kurze Tabellen bis zum Bildschirmende; volle Zeilen dürfen mehr Platz benötigen.",
@@ -252,7 +271,7 @@ const DE: Dict = {
   h_month_table_marker_grow:
     "Aus: Text nutzt freien Zeilenplatz und wird bei Platzmangel gekürzt; Farbe und Tooltip bleiben sichtbar. An: Zeilen wachsen für den Text mit.",
   h_month_table_date_width:
-    "92–280 px. Markierungstext verbreitert die Spalte nicht automatisch; Standard mit Markierungen: 140 px.",
+    "92–280 px, Standard 92 px. Kalender verbreitern die Spalte nicht automatisch; größere Datumsschrift passt weiterhin hinein.",
   h_month_table_saturday_color:
     "Tönung der Datumsfelder am Samstag; Kalender-Markierungen haben Vorrang.",
   h_month_table_sunday_color:

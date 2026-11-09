@@ -71,6 +71,90 @@ async function finish() {
   process.exit(failures.length ? 1 : 0);
 }
 
+/* --- calendars must not widen dates; styles stay independent -------- */
+if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "styles-width") {
+for (const width of [400, 1080]) {
+  const {page, errors} = await open({view:"month_table", width, height:1920, slim:true, dark:true,
+    time:new Date("2026-12-24T10:00:00+01:00"), timezoneId:"Europe/Berlin"});
+  await page.evaluate(async () => {
+    const card=document.querySelector("family-board-card-month-table"), read=card.hass.callApi;
+    card.hass={...card.hass,callApi:async(method,path)=>{
+      const cal=path.split("?")[0];
+      if(cal==="calendars/calendar.muell" || cal==="calendars/calendar.ferien") return [2,26].map(day=>({uid:`${cal}-${day}`,
+        summary:"Ein sehr langer Kalendername mit vielen Wörtern ".repeat(5),
+        start:{date:`2026-12-${String(day).padStart(2,"0")}`},end:{date:`2026-12-${String(day+1).padStart(2,"0")}`}}));
+      return read(method,path);
+    }};
+    card.setConfig({...card._config,family_calendars:undefined,month_table_marker_calendars:undefined,
+      month_table_inline_date:true,month_table_font_size:12,month_table_full_height:true,
+      month_table_row_height:32,month_table_row_padding:1,month_table_marker_color:"#ff8800",
+      month_table_saturday_color:"#3366ff",month_table_sunday_color:"#cc3344"});
+    await card.updateComplete;
+  });
+  const configure=async patch=>{await page.evaluate(async patch=>{const card=document.querySelector("family-board-card-month-table");
+    card.setConfig({...card._config,...patch});await card.updateComplete;},patch);await page.waitForTimeout(100);};
+  const measure=()=>page.evaluate(()=>{
+    const card=document.querySelector("family-board-card-month-table"),root=card.renderRoot;
+    const dates=[...root.querySelectorAll(".wday")],cells=[...root.querySelectorAll(".wcell")],n=root.querySelectorAll(".wphead").length;
+    const style=el=>({background:getComputedStyle(el).backgroundColor,shadow:getComputedStyle(el).boxShadow});
+    const row=day=>({date:style(dates[day-1]),cells:cells.slice((day-1)*n,day*n).map(style)});
+    const rect=el=>el.getBoundingClientRect();
+    return {width:rect(dates[0]).width,personLeft:rect(cells[0]).left,
+      dateFits:dates.every(date=>[...date.querySelectorAll(".month-date > *")].every(el=>rect(el).right<=rect(date).right+0.5)),
+      plain:row(3),weekend:row(5),marker:row(2),
+      heights:dates.map(el=>rect(el).height),events:[...root.querySelectorAll(".wchip")].map(style),
+      families:root.querySelectorAll(".famchip").length,outerOverflow:card.scrollWidth-card.clientWidth};
+  });
+  await configure({});
+  const baseline=await measure();
+  const widths=[];
+  for(const [mode,grow] of [["indicator",false],["text",false],["chip",false],["text",true],["chip",true]]) {
+    await configure({month_table_marker_calendars:["calendar.muell"],month_table_marker_mode:mode,month_table_marker_grow:grow});
+    const result=await measure();widths.push({mode,grow,width:result.width,left:result.personLeft});
+  }
+  check(`Kalendertext und Farbhinweise verbreitern die Datumsspalte nicht (${width}px)`,
+    widths.every(result=>result.width===baseline.width&&result.left===baseline.personLeft),JSON.stringify({baseline:baseline.width,widths}));
+  await configure({month_table_marker_mode:"indicator",family_calendars:["calendar.ferien"]});
+  const family=await measure();
+  check(`Lange Familienkalender-Titel verbreitern das Datum nicht (${width}px)`,family.families>0&&family.width===baseline.width);
+  await configure({month_table_date_width:180});
+  const explicit=await measure();
+  await configure({family_calendars:undefined,month_table_marker_calendars:undefined});
+  check(`Manuelle Datumsspaltenbreite bleibt unabhängig von Kalendern (${width}px)`,explicit.width===180&&(await measure()).width===180);
+  await configure({month_table_date_width:undefined,month_table_font_size:22});
+  const large=await measure();
+  await configure({month_table_marker_calendars:["calendar.muell"],family_calendars:["calendar.ferien"]});
+  const largeWithCalendar=await measure();
+  check(`Große Datumsschrift bleibt lesbar und gleich breit (${width}px)`,large.width>baseline.width&&largeWithCalendar.width===large.width&&largeWithCalendar.dateFits);
+  await configure({family_calendars:undefined,month_table_font_size:12,month_table_marker_grow:false,
+    month_table_weekend_full_row:true,month_table_marker_full_row:true});
+  const original=await measure();
+  check(`Bisherige Standardstile bleiben erhalten (${width}px)`,original.weekend.date.shadow==="none"&&original.marker.date.shadow.includes("4px"));
+  for(const chosen of ["line","background","both","underline"]) {
+    await configure({month_table_weekend_style:chosen,month_table_marker_style:chosen});
+    const result=await measure();
+    const valid=[result.weekend,result.marker].every(row=>{
+      const background=chosen==="background"||chosen==="both";
+      const line=chosen==="line"||chosen==="both";
+      const underline=chosen==="underline";
+      return (row.date.background!==result.plain.date.background)===background &&
+        (row.date.shadow!=="none")===(line||underline) && (!line||row.date.shadow.includes("4px")) &&
+        (!underline||row.date.shadow.includes("-3px")) && row.cells.every(cell=>
+          (cell.background!==result.plain.cells[0].background)===background &&
+          (cell.shadow!=="none")===underline && (!underline||cell.shadow.includes("-3px")));
+    });
+    check(`Markierungsstil ${chosen} auf Datumsfeld und Tageszeile (${width}px)`,valid,valid?"":JSON.stringify(result));
+  }
+  await configure({month_table_weekend_style:"underline",month_table_marker_style:"background"});
+  const independent=await measure();
+  check(`Kalender- und Wochenendstile sind unabhängig (${width}px)`,independent.weekend.date.shadow.includes("-3px")&&independent.marker.date.shadow==="none"&&independent.marker.date.background!==independent.plain.date.background);
+  if(width===1080&&process.env.HIGHLIGHT_STYLE_SCREENSHOT)await page.screenshot({path:process.env.HIGHLIGHT_STYLE_SCREENSHOT,fullPage:true});
+  check(`Stilwechsel erhält Zeilenhöhen und Terminfarben (${width}px)`,JSON.stringify(independent.heights)===JSON.stringify(original.heights)&&JSON.stringify(independent.events)===JSON.stringify(original.events)&&independent.outerOverflow===0&&errors.length===0,errors.join(" | "));
+  await page.close();
+}
+}
+if(process.env.BROWSER_CHECK_GROUP==="styles-width")await finish();
+
 /* --- independent full-row tints for weekends and calendar markings -- */
 if (process.env.BROWSER_CHECK_GROUP !== "indicator") {
 for (const width of [400, 1080]) {
@@ -554,7 +638,7 @@ for (const width of [400, 1080]) {
   await configure({month_table_marker_calendars: ["calendar.muell"], month_table_marker_mode: "text", month_table_marker_text_color: "#ffffff", month_table_marker_font_size: 12});
   const text = await measure();
   check(`Feiertagstext markiert Datum ohne höhere Zeile (${width}px)`, text.marked && text.marker?.length > 0 && text.rowHeight === before.rowHeight, JSON.stringify(text));
-  check(`Text verbreitert nur die konfigurierte Datumsspalte (${width}px)`, text.columnWidth === 140 && text.overflow <= 1 && text.outerOverflow === 0);
+  check(`Kalendermarkierung behält die Datumsspaltenbreite (${width}px)`, text.columnWidth === before.columnWidth && text.overflow <= 1 && text.outerOverflow === 0);
   await configure({month_table_marker_mode: "indicator"});
   const indicator = await measure();
   check(`Farbhinweis behält Tooltip ohne sichtbaren Termintext (${width}px)`, indicator.marked && !indicator.marker && indicator.title.length > 0);
