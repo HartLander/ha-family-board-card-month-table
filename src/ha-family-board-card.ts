@@ -108,12 +108,16 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   month_table_sunday_color?: string;
   month_table_weekend_full_row?: boolean;
   month_table_weekend_style?: HighlightStyle;
+  month_table_weekend_line_width?: number;
+  month_table_weekend_background_opacity?: number;
   month_table_marker_calendars?: string[];
   month_table_marker_keep_columns?: boolean;
   month_table_marker_mode?: "chip" | "text" | "indicator";
   month_table_marker_color?: string;
   month_table_marker_full_row?: boolean;
   month_table_marker_style?: HighlightStyle;
+  month_table_marker_line_width?: number;
+  month_table_marker_background_opacity?: number;
   month_table_marker_text_color?: string;
   month_table_marker_font_size?: number;
   month_table_marker_grow?: boolean;
@@ -286,6 +290,38 @@ const hashColor = (s: string): string => {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return FALLBACK_COLORS[h % FALLBACK_COLORS.length];
 };
+
+/** Shared by the renderer and editor so sliders show the effective defaults. */
+export function monthTableHighlightSettings(config: FamilyBoardConfig, marker: boolean) {
+  const configuredStyle = marker
+    ? config.month_table_marker_style
+    : config.month_table_weekend_style;
+  const style: HighlightStyle =
+    configuredStyle && ["line", "background", "both", "underline"].includes(configuredStyle)
+      ? configuredStyle
+      : marker
+        ? "both"
+        : "background";
+  const bounded = (value: unknown, maximum: number, fallback: number) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.max(0, Math.min(maximum, value))
+      : fallback;
+  return {
+    style,
+    lineWidth: bounded(
+      marker ? config.month_table_marker_line_width : config.month_table_weekend_line_width,
+      12,
+      style === "underline" ? 3 : 4,
+    ),
+    opacity: bounded(
+      marker
+        ? config.month_table_marker_background_opacity
+        : config.month_table_weekend_background_opacity,
+      100,
+      24,
+    ),
+  };
+}
 
 /**
  * Auto-detect family members: every person.* entity becomes a row, and
@@ -1292,31 +1328,23 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
 
   private _dateStyle(date: Date, markers: RawEvent[]) {
     const color = markers.length ? this._markerColor(markers[0]) : this._weekendColor(date);
-    const style = this._highlightStyle(markers.length > 0);
+    const { style, lineWidth, opacity } = monthTableHighlightSettings(
+      this._config,
+      markers.length > 0,
+    );
     return {
       "--fb-date-highlight": color || undefined,
       background:
-        color && (style === "background" || style === "both")
-          ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
+        color && opacity > 0 && (style === "background" || style === "both")
+          ? `color-mix(in srgb, ${color} ${opacity}%, var(--card-background-color, #fff))`
           : undefined,
       "box-shadow":
-        color && (style === "line" || style === "both")
-          ? `inset 4px 0 ${color}`
-          : color && style === "underline"
-            ? `inset 0 -3px ${color}`
+        color && lineWidth > 0 && (style === "line" || style === "both")
+          ? `inset ${lineWidth}px 0 ${color}`
+          : color && lineWidth > 0 && style === "underline"
+            ? `inset 0 -${lineWidth}px ${color}`
             : undefined,
     };
-  }
-
-  private _highlightStyle(marker: boolean): HighlightStyle {
-    const style = marker
-      ? this._config.month_table_marker_style
-      : this._config.month_table_weekend_style;
-    return style && ["line", "background", "both", "underline"].includes(style)
-      ? style
-      : marker
-        ? "both"
-        : "background";
   }
 
   private _weekendColor(date: Date): string | undefined {
@@ -1334,14 +1362,17 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
       : this._config.month_table_weekend_full_row
         ? this._weekendColor(date)
         : undefined;
-    const style = this._highlightStyle(marker);
+    const { style, lineWidth, opacity } = monthTableHighlightSettings(this._config, marker);
     return {
       "--fb-row-highlight": color || undefined,
       background:
-        color && (style === "background" || style === "both")
-          ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
+        color && opacity > 0 && (style === "background" || style === "both")
+          ? `color-mix(in srgb, ${color} ${opacity}%, var(--card-background-color, #fff))`
           : undefined,
-      "box-shadow": color && style === "underline" ? `inset 0 -3px ${color}` : undefined,
+      "box-shadow":
+        color && lineWidth > 0 && style === "underline"
+          ? `inset 0 -${lineWidth}px ${color}`
+          : undefined,
     };
   }
 
@@ -5541,7 +5572,7 @@ if (!customElements.get("family-board-card-month-table")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.4 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.5 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );

@@ -2,7 +2,7 @@
 
 Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.31.2**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
 
-**Fork-Version: `0.31.2-month-table.4`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork-Version: `0.31.2-month-table.5`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Monatstabelle aktivieren
 
@@ -52,6 +52,19 @@ Zwei unabhängige Schalter können die Tönung über alle Personenspalten der Ta
 Beide sind standardmäßig `false`. Sind beide an, hat die Kalenderfarbe an sich überschneidenden Tagen Vorrang. Ist nur die Wochenend-Zeilenfarbe an, kann das Feiertags-Datumsfeld seine Kalenderfarbe behalten, während die Personenzellen die Wochenendtönung erhalten. Terminblöcke behalten ihre eigenen Farben; die Zeilenhöhe bleibt gleich. Die Schalter gelten nur für `month_table`.
 
 **Stil der Kalender-Markierung** (`month_table_marker_style`) und **Stil der Wochenend-Markierung** (`month_table_weekend_style`) bieten unabhängig voneinander `line` (Linie links), `background` (nur Hintergrund), `both` (beides) und `underline` (Linie unten). Standard bleibt `both` für Kalender und `background` für Wochenenden. Die Zeilenoption erweitert Hintergründe und untere Linien über die Personenspalten; eine linke Linie bleibt am Datumsfeld. Der Stil gilt für die Datums-/Zeilenmarkierung. Text und Terminblöcke wählst du unabhängig über `month_table_marker_mode`.
+
+Getrennte Slider regeln die Linienstärke (0–12 px) und die Hintergrund-Deckkraft (0–100 %) für Wochenenden und Kalender-Markierungen. Sie erscheinen passend zum Stil: die Stärke bei linken/unteren Linien, die Deckkraft bei Hintergründen, beide bei `both`. Die Regler gelten für die Datums-/Zeilenmarkierung; Terminblöcke behalten ihren eigenen Stil. Standard bleiben 4 px für linke Linien, 3 px für untere Linien und 24 % Hintergrund-Deckkraft. Null blendet die jeweilige Markierung aus. Der Editor zeigt die wirksamen Standardwerte an und behält die Werte jeder Quelle beim Stilwechsel bei.
+
+```yaml
+month_table_weekend_style: both
+month_table_weekend_line_width: 2
+month_table_weekend_background_opacity: 15
+month_table_marker_style: both
+month_table_marker_line_width: 6
+month_table_marker_background_opacity: 50
+```
+
+Die Werte gelten auch bei aktivierter Zeilenmarkierung. Bei Überschneidungen haben die Kalenderwerte wie bei den bisherigen Farben Vorrang. YAML-Werte außerhalb der Bereiche werden begrenzt; ungültige Werte verwenden die Standards. Entferne die Optionen, um die Standardwerte des gewählten Stils wiederherzustellen.
 
 Das Hinzufügen eines Kalenders verändert die Breite der Datumsspalte nicht mehr. Die Mindestbreite beträgt einheitlich 92 px und lässt sich über `month_table_date_width` einstellen (92–280 px). Lange Kalendertexte bleiben innerhalb der Spalte, auch wenn die Zeile für Text wachsen darf. Größere Datumsschrift darf die Spalte weiterhin verbreitern, damit das Datum lesbar bleibt.
 
@@ -147,7 +160,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Kompakt-Modus** – ein Schalter (`compact`) für kleinere Schriften und engere Abstände, statt drei Regler einzeln zu justieren.
 - **Personen beim Start ausgeblendet** – `hidden: true` pro Person; die Spalte startet eingeklappt und ein Klick auf den Kopf holt sie zurück.
 
-> Status: **v0.31.2-month-table.4 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
+> Status: **v0.31.2-month-table.5 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
 
 ## Installation
 
@@ -156,7 +169,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 Verwende `dist/ha-family-board-card-month-table.js` aus diesem Fork oder baue die Datei mit `npm ci && npm run build`. Kopiere sie nach `/config/www/ha-family-board-card-month-table.js` und füge diese Dashboard-Ressource hinzu:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.4
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.5
 type: module
 ```
 

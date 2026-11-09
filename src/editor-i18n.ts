@@ -7,6 +7,18 @@ type Dict = Record<string, string>;
 
 /** Field labels (`l_<option>`), helper texts (`h_<option>`) and UI strings. */
 const EN: Dict = {
+  l_month_table_weekend_line_width: "Weekends: line thickness",
+  l_month_table_weekend_background_opacity: "Weekends: background opacity",
+  l_month_table_marker_line_width: "Calendar markings: line thickness",
+  l_month_table_marker_background_opacity: "Calendar markings: background opacity",
+  h_month_table_weekend_line_width:
+    "0–12 px. 0 hides the line. Defaults: left line 4 px, underline 3 px.",
+  h_month_table_marker_line_width:
+    "0–12 px. 0 hides the line. Defaults: left line 4 px, underline 3 px.",
+  h_month_table_weekend_background_opacity:
+    "0–100%. 0 adds no background; 100 uses the selected color fully. Default: 24%.",
+  h_month_table_marker_background_opacity:
+    "0–100%. 0 adds no background; 100 uses the selected color fully. Default: 24%.",
   l_month_table_weekend_style: "Weekend highlighting style",
   l_month_table_marker_style: "Calendar marking style",
   h_month_table_weekend_style: "Left line, background, both or underline. Default: background.",
@@ -225,6 +237,18 @@ const EN: Dict = {
 };
 
 const DE: Dict = {
+  l_month_table_weekend_line_width: "Wochenenden: Linienstärke",
+  l_month_table_weekend_background_opacity: "Wochenenden: Hintergrund-Deckkraft",
+  l_month_table_marker_line_width: "Kalender-Markierungen: Linienstärke",
+  l_month_table_marker_background_opacity: "Kalender-Markierungen: Hintergrund-Deckkraft",
+  h_month_table_weekend_line_width:
+    "0–12 px. 0 blendet die Linie aus. Standard: links 4 px, unten 3 px.",
+  h_month_table_marker_line_width:
+    "0–12 px. 0 blendet die Linie aus. Standard: links 4 px, unten 3 px.",
+  h_month_table_weekend_background_opacity:
+    "0–100 %. 0 fügt keinen Hintergrund hinzu; 100 verwendet die Farbe vollständig. Standard: 24 %.",
+  h_month_table_marker_background_opacity:
+    "0–100 %. 0 fügt keinen Hintergrund hinzu; 100 verwendet die Farbe vollständig. Standard: 24 %.",
   l_month_table_weekend_style: "Stil der Wochenend-Markierung",
   l_month_table_marker_style: "Stil der Kalender-Markierung",
   h_month_table_weekend_style:

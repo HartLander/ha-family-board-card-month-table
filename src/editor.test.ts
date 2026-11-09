@@ -19,6 +19,7 @@ type Schema = {
   selector?: { number?: { mode?: string; min?: number; max?: number; step?: number } };
 };
 type Form = HTMLElement & {
+  data: Record<string, unknown>;
   computeLabel: (s: { name: string }) => string;
   computeHelper: (s: { name: string }) => string | undefined;
   schema: Schema[];
@@ -304,6 +305,94 @@ describe("month table density controls", () => {
 });
 
 describe("wall-display editor", () => {
+  it("shows four localized sliders with the effective defaults for both highlight sources", async () => {
+    for (const lang of ["de", "en"]) {
+      const { settings, fields } = await mountEditor(
+        { view: "month_table", month_table_weekend_style: "both" },
+        lang,
+      );
+      for (const source of ["weekend", "marker"]) {
+        const width = `month_table_${source}_line_width`,
+          opacity = `month_table_${source}_background_opacity`;
+        expect(fields()).toContain(width);
+        expect(fields()).toContain(opacity);
+        expect(settings.computeLabel({ name: width })).not.toBe(width);
+        expect(settings.computeLabel({ name: opacity })).not.toBe(opacity);
+        expect(settings.data[width]).toBe(4);
+        expect(settings.data[opacity]).toBe(24);
+      }
+    }
+    const underlined = await mountEditor({
+      view: "month_table",
+      month_table_weekend_style: "underline",
+      month_table_marker_style: "background",
+    });
+    expect(underlined.settings.data.month_table_weekend_line_width).toBe(3);
+    expect(underlined.settings.data.month_table_weekend_background_opacity).toBeUndefined();
+    expect(underlined.settings.data.month_table_marker_line_width).toBeUndefined();
+    expect(underlined.fields()).not.toContain("month_table_weekend_background_opacity");
+    expect(underlined.fields()).not.toContain("month_table_marker_line_width");
+  });
+
+  it.each([
+    ["month_table_weekend_line_width", 12, 4],
+    ["month_table_marker_line_width", 12, 4],
+    ["month_table_weekend_background_opacity", 100, 24],
+    ["month_table_marker_background_opacity", 100, 24],
+  ])(
+    "bounds invalid YAML values for the %s slider while retaining zero",
+    async (name, maximum, fallback) => {
+      const key = String(name);
+      for (const [value, expected] of [
+        [-5, 0],
+        [999, maximum],
+        [0, 0],
+        [NaN, fallback],
+        [Infinity, fallback],
+        ["invalid", fallback],
+        [null, fallback],
+      ]) {
+        const { settings } = await mountEditor({
+          view: "month_table",
+          month_table_weekend_style: "both",
+          [key]: value,
+        });
+        expect(settings.data[key]).toBe(expected);
+      }
+    },
+  );
+
+  it("saves zero and full-opacity settings without dropping separate source values", async () => {
+    const { el, settings } = await mountEditor({
+      view: "month_table",
+      month_table_weekend_style: "both",
+      month_table_marker_style: "both",
+    });
+    let changed: any;
+    el.addEventListener("config-changed", (event) => {
+      changed = (event as CustomEvent).detail.config;
+    });
+    const values = {
+      month_table_weekend_line_width: 0,
+      month_table_weekend_background_opacity: 0,
+      month_table_marker_line_width: 12,
+      month_table_marker_background_opacity: 100,
+    };
+    settings.dispatchEvent(
+      new CustomEvent("value-changed", { detail: { value: { ...settings.data, ...values } } }),
+    );
+    expect(changed).toMatchObject(values);
+    expect(changed.persons).toEqual([{ name: "Anna", calendar: "calendar.anna" }]);
+    el.setConfig({
+      ...changed,
+      month_table_weekend_style: "line",
+      month_table_marker_style: "background",
+    });
+    await el.updateComplete;
+    const forms = [...el.shadowRoot!.querySelectorAll("ha-form")];
+    const form = forms[forms.length - 1] as Form;
+    expect(form.data).toMatchObject(values);
+  });
   it("offers separate localized style pickers for weekend and calendar highlights", async () => {
     for (const lang of ["de", "en"]) {
       const { settings } = await mountEditor(
