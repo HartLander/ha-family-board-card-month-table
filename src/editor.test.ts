@@ -304,6 +304,29 @@ describe("month table density controls", () => {
 });
 
 describe("wall-display editor", () => {
+  it("offers separate localized style pickers for weekend and calendar highlights", async () => {
+    for (const lang of ["de", "en"]) {
+      const { settings } = await mountEditor(
+        { view: "month_table", month_table_marker_mode: "indicator" },
+        lang,
+      );
+      const layout = settings.schema.find((group) => group.title?.includes("Layout"))!;
+      for (const name of ["month_table_weekend_style", "month_table_marker_style"]) {
+        const field = layout.schema?.find((field) => field.name === name)!;
+        expect(settings.computeLabel(field)).not.toBe(name);
+        const options = (field as any).selector.select.options;
+        expect(options.map((option: any) => option.value)).toEqual([
+          "line",
+          "background",
+          "both",
+          "underline",
+        ]);
+        expect(options.every((option: any) => option.label !== `o_highlight_${option.value}`)).toBe(
+          true,
+        );
+      }
+    }
+  });
   it("offers separate localized weekend and calendar row-color switches", async () => {
     for (const lang of ["de", "en"]) {
       const { fields, settings } = await mountEditor(

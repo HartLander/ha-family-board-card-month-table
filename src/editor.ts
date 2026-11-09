@@ -203,6 +203,18 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       })),
     );
     if (hasMonthTable) {
+      const styleField = (name: string) => ({
+        name,
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: ["line", "background", "both", "underline"].map((value) => ({
+              value,
+              label: this._t(`o_highlight_${value}`),
+            })),
+          },
+        },
+      });
       layout.push(
         { name: "month_table_full_height", selector: { boolean: {} } },
         { name: "month_table_fill_height", selector: { boolean: {} } },
@@ -221,6 +233,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       );
       layout.push(
         ...MONTH_COLORS.slice(0, 2).map((name) => ({ name, selector: { color_rgb: {} } })),
+        styleField("month_table_weekend_style"),
         { name: "month_table_weekend_full_row", selector: { boolean: {} } },
         {
           name: "month_table_marker_calendars",
@@ -240,6 +253,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
           },
         },
         { name: "month_table_marker_color", selector: { color_rgb: {} } },
+        styleField("month_table_marker_style"),
         { name: "month_table_marker_full_row", selector: { boolean: {} } },
       );
       if (cfg.month_table_marker_mode !== "indicator") {
@@ -453,6 +467,8 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         "month_table_fill_height",
         "month_table_weekend_full_row",
         "month_table_marker_full_row",
+        "month_table_weekend_style",
+        "month_table_marker_style",
         "header_position",
         "navigation_position",
         "navigation_layout",

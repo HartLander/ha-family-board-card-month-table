@@ -2,7 +2,7 @@
 
 Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.31.2**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
 
-**Fork-Version: `0.31.2-month-table.3`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork-Version: `0.31.2-month-table.4`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Monatstabelle aktivieren
 
@@ -51,6 +51,10 @@ Zwei unabhängige Schalter können die Tönung über alle Personenspalten der Ta
 
 Beide sind standardmäßig `false`. Sind beide an, hat die Kalenderfarbe an sich überschneidenden Tagen Vorrang. Ist nur die Wochenend-Zeilenfarbe an, kann das Feiertags-Datumsfeld seine Kalenderfarbe behalten, während die Personenzellen die Wochenendtönung erhalten. Terminblöcke behalten ihre eigenen Farben; die Zeilenhöhe bleibt gleich. Die Schalter gelten nur für `month_table`.
 
+**Stil der Kalender-Markierung** (`month_table_marker_style`) und **Stil der Wochenend-Markierung** (`month_table_weekend_style`) bieten unabhängig voneinander `line` (Linie links), `background` (nur Hintergrund), `both` (beides) und `underline` (Linie unten). Standard bleibt `both` für Kalender und `background` für Wochenenden. Die Zeilenoption erweitert Hintergründe und untere Linien über die Personenspalten; eine linke Linie bleibt am Datumsfeld. Der Stil gilt für die Datums-/Zeilenmarkierung. Text und Terminblöcke wählst du unabhängig über `month_table_marker_mode`.
+
+Das Hinzufügen eines Kalenders verändert die Breite der Datumsspalte nicht mehr. Die Mindestbreite beträgt einheitlich 92 px und lässt sich über `month_table_date_width` einstellen (92–280 px). Lange Kalendertexte bleiben innerhalb der Spalte, auch wenn die Zeile für Text wachsen darf. Größere Datumsschrift darf die Spalte weiterhin verbreitern, damit das Datum lesbar bleibt.
+
 ```yaml
 header_position: bottom
 navigation_position: bottom
@@ -69,7 +73,7 @@ month_table_marker_full_row: true
 month_table_marker_keep_columns: false
 month_table_marker_font_size: 11
 month_table_marker_grow: false
-month_table_date_width: 140
+month_table_date_width: 92
 calendars:
   calendar.feiertage:
     color: '#ff8800'
@@ -143,7 +147,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Kompakt-Modus** – ein Schalter (`compact`) für kleinere Schriften und engere Abstände, statt drei Regler einzeln zu justieren.
 - **Personen beim Start ausgeblendet** – `hidden: true` pro Person; die Spalte startet eingeklappt und ein Klick auf den Kopf holt sie zurück.
 
-> Status: **v0.31.2-month-table.3 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
+> Status: **v0.31.2-month-table.4 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
 
 ## Installation
 
@@ -152,7 +156,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 Verwende `dist/ha-family-board-card-month-table.js` aus diesem Fork oder baue die Datei mit `npm ci && npm run build`. Kopiere sie nach `/config/www/ha-family-board-card-month-table.js` und füge diese Dashboard-Ressource hinzu:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.3
+url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.4
 type: module
 ```
 

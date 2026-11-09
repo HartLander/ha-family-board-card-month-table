@@ -26,6 +26,10 @@ Bildschirmhöhenfüllung und Terminen in anderen Spalten.
 Zeilenfarben für Wochenenden und Markierungskalender, inklusive Vorrang bei
 Überschneidungen und gleichbleibender Terminfarben und Zeilenhöhen.
 
+`BROWSER_CHECK_GROUP=styles-width npm run check:browser` prüft die stabile
+Datumsspaltenbreite beim Hinzufügen langer Familien-/Markierungskalendertexte,
+alle vier Markierungsstile, deren unabhängige Auswahl und große Datumsschrift.
+
 Die Monatstabelle wird außerdem mit ein- und zweizeiligem Datum, minimalen und
 maximalen Schrift-/Abstandswerten und kompakten Personenüberschriften geprüft.
 `MONTH_TABLE_DENSITY_SCREENSHOT=/tmp/month-table-compact.png` speichert beim

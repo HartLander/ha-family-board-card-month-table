@@ -34,6 +34,7 @@ import {
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 type ViewName = "now" | "day" | "week" | "month" | "month_table" | "agenda" | "timeline";
+type HighlightStyle = "line" | "background" | "both" | "underline";
 /** Canonical toggle order. */
 const ALL_VIEWS: ViewName[] = ["now", "day", "timeline", "week", "month", "month_table", "agenda"];
 /** Views shown when `views` is not configured. "now" and "month_table" are opt-in, so existing boards stay as they are. */
@@ -106,11 +107,13 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   month_table_saturday_color?: string;
   month_table_sunday_color?: string;
   month_table_weekend_full_row?: boolean;
+  month_table_weekend_style?: HighlightStyle;
   month_table_marker_calendars?: string[];
   month_table_marker_keep_columns?: boolean;
   month_table_marker_mode?: "chip" | "text" | "indicator";
   month_table_marker_color?: string;
   month_table_marker_full_row?: boolean;
+  month_table_marker_style?: HighlightStyle;
   month_table_marker_text_color?: string;
   month_table_marker_font_size?: number;
   month_table_marker_grow?: boolean;
@@ -1289,13 +1292,31 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
 
   private _dateStyle(date: Date, markers: RawEvent[]) {
     const color = markers.length ? this._markerColor(markers[0]) : this._weekendColor(date);
+    const style = this._highlightStyle(markers.length > 0);
     return {
       "--fb-date-highlight": color || undefined,
-      background: color
-        ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
-        : undefined,
-      "box-shadow": markers.length ? `inset 4px 0 ${color}` : undefined,
+      background:
+        color && (style === "background" || style === "both")
+          ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
+          : undefined,
+      "box-shadow":
+        color && (style === "line" || style === "both")
+          ? `inset 4px 0 ${color}`
+          : color && style === "underline"
+            ? `inset 0 -3px ${color}`
+            : undefined,
     };
+  }
+
+  private _highlightStyle(marker: boolean): HighlightStyle {
+    const style = marker
+      ? this._config.month_table_marker_style
+      : this._config.month_table_weekend_style;
+    return style && ["line", "background", "both", "underline"].includes(style)
+      ? style
+      : marker
+        ? "both"
+        : "background";
   }
 
   private _weekendColor(date: Date): string | undefined {
@@ -1307,17 +1328,20 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
   }
 
   private _rowStyle(date: Date, markers: RawEvent[]) {
-    const color =
-      this._config.month_table_marker_full_row && markers.length
-        ? this._markerColor(markers[0])
-        : this._config.month_table_weekend_full_row
-          ? this._weekendColor(date)
-          : undefined;
+    const marker = !!this._config.month_table_marker_full_row && markers.length > 0;
+    const color = marker
+      ? this._markerColor(markers[0])
+      : this._config.month_table_weekend_full_row
+        ? this._weekendColor(date)
+        : undefined;
+    const style = this._highlightStyle(marker);
     return {
       "--fb-row-highlight": color || undefined,
-      background: color
-        ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
-        : undefined,
+      background:
+        color && (style === "background" || style === "both")
+          ? `color-mix(in srgb, ${color} 24%, var(--card-background-color, #fff))`
+          : undefined,
+      "box-shadow": color && style === "underline" ? `inset 0 -3px ${color}` : undefined,
     };
   }
 
@@ -2716,11 +2740,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
                 this._calsOf(p).some((cal) => !hiddenCalendars.includes(cal)),
             );
     const dayCol = this._familyCals().length ? "118px" : "70px";
-    const dateCol = month
-      ? this._familyCals().length
-        ? "var(--fb-date-width, 140px)"
-        : "max-content"
-      : dayCol;
+    const dateCol = month ? "max-content" : dayCol;
     const cols = shown.length ? `${dateCol} repeat(${shown.length}, minmax(110px, 1fr))` : "1fr";
     return html`
       <div class="weekhead">${month ? this._monthNav() : this._weekNav()}</div>
@@ -2754,6 +2774,9 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
           ${days.map((d) => {
             const markers = month ? this._markersOn(dateFor(d)) : [];
             const rowStyle = month ? this._rowStyle(dateFor(d), markers) : {};
+            const family = this._familyOn(dateFor(d)).filter(
+              (event) => !month || !this._markerCals().includes(event.calendar),
+            );
             return html`
               <div
                 class="wday ${isToday(d) ? "today" : ""} ${markers.length ? "has-markers" : ""}"
@@ -2780,9 +2803,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
                         </span>`
                       : html`<b>${short[d]}</b>`
                   }${this._weatherChip(dateFor(d), "short")}
-                  ${this._familyOn(dateFor(d))
-                    .filter((event) => !month || !this._markerCals().includes(event.calendar))
-                    .map((r) => this._familyChip(r, dateFor(d)))}</span
+                  ${family.length ? html`<span class="date-family">${family.map((event) => this._familyChip(event, dateFor(d)))}</span>` : nothing}</span
                 >
                 ${month ? this._renderMarkers(markers) : nothing}
               </div>
@@ -5285,6 +5306,15 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
       align-items: inherit;
       gap: 2px;
       max-width: 100%;
+      width: 100%;
+    }
+    .date-family {
+      display: flex;
+      flex-direction: column;
+      align-self: stretch;
+      gap: 2px;
+      min-width: 0;
+      contain: inline-size;
     }
     .wday:has(.famchip) .date-main {
       align-items: flex-start;
@@ -5321,7 +5351,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     }
     .month-table.grow-markers .date-markers {
       flex: none;
-      contain: none;
+      contain: inline-size;
     }
     /* dialog */
     .overlay {
@@ -5511,7 +5541,7 @@ if (!customElements.get("family-board-card-month-table")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.3 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.4 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );
