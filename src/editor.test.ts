@@ -196,6 +196,39 @@ it("offers the localized month table and its empty-person filter", async () => {
   });
 });
 
+describe("fixed card height", () => {
+  it("exposes an optional pixel field in the layout settings", async () => {
+    const { fields, settings } = await mountEditor({ view: "agenda", views: ["agenda"] });
+    expect(fields()).toContain("card_height");
+    expect(settings.data.card_height).toBeUndefined();
+    expect(settings.computeLabel({ name: "card_height" })).toBe("Feste Kartenhöhe");
+    expect(settings.computeHelper({ name: "card_height" })).toContain("Navigation");
+  });
+
+  it("saves the height and removes it when the field is cleared", async () => {
+    const { el, settings } = await mountEditor({ card_height: 640, month_table_row_height: 24 });
+    const configs: Array<Record<string, unknown>> = [];
+    el.addEventListener("config-changed", (event) =>
+      configs.push((event as CustomEvent).detail.config),
+    );
+    const change = (height?: number) =>
+      settings.dispatchEvent(
+        new CustomEvent("value-changed", {
+          detail: { value: { ...settings.data, card_height: height } },
+        }),
+      );
+    change(720);
+    expect(configs[0]).toMatchObject({ card_height: 720, month_table_row_height: 24 });
+    change();
+    change(0);
+    expect(configs).toHaveLength(3);
+    for (const config of configs.slice(1)) {
+      expect(config).not.toHaveProperty("card_height");
+      expect(config.month_table_row_height).toBe(24);
+    }
+  });
+});
+
 describe("full month layout option", () => {
   it("offers the switch in Layout when the month table is available", async () => {
     for (const config of [{ views: ["month_table"] }, { view: "month_table" }]) {

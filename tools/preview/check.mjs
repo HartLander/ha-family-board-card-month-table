@@ -75,6 +75,154 @@ async function finish() {
   process.exit(failures.length ? 1 : 0);
 }
 
+/* --- fixed card height -------------------------------------------- */
+if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "fixed-card-height") {
+  const { page, errors } = await open({
+    view: "month_table", width: 1080, height: 900, slim: true, timezoneId: "Europe/Berlin",
+    time: new Date("2026-02-04T10:20:00+01:00"),
+  });
+  const configure = async patch => {
+    await page.evaluate(async patch => {
+      const card = document.querySelector("family-board-card-month-table");
+      card.setConfig({ ...card._config, ...patch });
+      await card.updateComplete;
+    }, patch);
+    await page.waitForTimeout(200);
+  };
+  const measure = () => page.evaluate(() => {
+    const root = document.querySelector("family-board-card-month-table").renderRoot;
+    const card = root.querySelector("ha-card");
+    const table = root.querySelector(".month-table");
+    const grid = root.querySelector(".weekgrid");
+    const nav = root.querySelector(".bottom-nav");
+    const title = root.querySelector(".top");
+    const firstCell = root.querySelector(".wcell");
+    const box = el => el.getBoundingClientRect();
+    return {
+      card: box(card).height,
+      outerScroll: card.scrollHeight - card.clientHeight,
+      tableScroll: table.scrollHeight - table.clientHeight,
+      content: box(grid).height,
+      blank: box(table).bottom - box(grid).bottom,
+      navTop: box(nav).top - box(card).top,
+      navGap: box(nav).top - box(table).bottom,
+      footerGap: box(card).bottom - box(title).bottom,
+      days: table.querySelectorAll(".wday").length,
+      firstRow: box(firstCell).height,
+    };
+  });
+  const same = (a, b) => Math.abs(a - b) <= 1;
+  await page.evaluate(() => {
+    const card = document.querySelector("family-board-card-month-table");
+    Object.assign(card.renderRoot.querySelector("ha-card").style, {
+      border: "1px solid var(--divider-color)",
+      background: "var(--ha-card-background)",
+      borderRadius: "var(--ha-card-border-radius)",
+    });
+  });
+  await configure({
+    card_height: 640, header_position: "bottom", navigation_position: "bottom",
+    month_table_row_height: 32, month_table_row_padding: 0, month_table_inline_date: true,
+    month_table_compact_header: true, month_table_full_height: true, month_table_fill_height: true,
+    family_calendars: undefined, weather_entity: undefined,
+  });
+  const feb = await measure();
+  check("Feste Kartenhöhe schließt Rahmen ein und begrenzt den Kalenderscroll",
+    same(feb.card, 640) && feb.tableScroll > 0 && feb.outerScroll <= 1 &&
+    same(feb.navGap, 0) && same(feb.footerGap, 1), JSON.stringify(feb));
+  if (process.env.FIXED_CARD_HEIGHT_SCREENSHOT) {
+    await page.locator("family-board-card-month-table").locator("ha-card")
+      .screenshot({ path: process.env.FIXED_CARD_HEIGHT_SCREENSHOT });
+  }
+  await page.locator("family-board-card-month-table")
+    .getByRole("button", { name: "Nächster Monat", exact: true }).click();
+  await page.waitForTimeout(200);
+  const mar = await measure();
+  check("Navigation bleibt beim Wechsel von 28 auf 31 Tage an derselben Stelle",
+    feb.days === 28 && mar.days === 31 && same(mar.navTop, feb.navTop) &&
+    same(mar.card, 640) && same(mar.firstRow, feb.firstRow), JSON.stringify({ feb, mar }));
+  const scrolled = await page.evaluate(() => {
+    const table = document.querySelector("family-board-card-month-table").renderRoot.querySelector(".month-table");
+    const header = table.querySelector(".wphead");
+    const last = [...table.querySelectorAll(".wday")].at(-1);
+    table.scrollTop = table.scrollHeight;
+    return table.scrollTop > 0 &&
+      Math.abs(header.getBoundingClientRect().top - table.getBoundingClientRect().top) <= 1 &&
+      last.getBoundingClientRect().bottom <= table.getBoundingClientRect().bottom + 1;
+  });
+  check("Personenköpfe bleiben sichtbar, letzter Tag ist innen erreichbar", scrolled);
+
+  await page.setViewportSize({ width: 1080, height: 740 });
+  const resized = await measure();
+  check("Die feste Höhe bleibt beim Ändern der Bildschirmhöhe erhalten",
+    same(resized.card, 640) && same(resized.navTop, mar.navTop));
+  await configure({ card_height: 1320 });
+  const tall = await measure();
+  check("Freier Platz bleibt unter den Zeilen, auch wenn Bildschirmfüllung aktiv ist",
+    same(tall.card, 1320) && same(tall.content, mar.content) &&
+    tall.blank > 20 && tall.tableScroll <= 1 && same(tall.firstRow, mar.firstRow), JSON.stringify(tall));
+
+  await configure({ card_height: 640, month_table_row_height: 56 });
+  const larger = await measure();
+  check("Zeilenhöhe bleibt separat einstellbar",
+    same(larger.card, 640) && same(larger.navTop, mar.navTop) && larger.firstRow >= mar.firstRow + 20);
+
+  await configure({ card_height: undefined, month_table_fill_height: false });
+  const automatic = await measure();
+  check("Entfernen der festen Höhe stellt die natürliche Kartenhöhe wieder her",
+    automatic.card > 640 && automatic.tableScroll <= 1);
+  check("Keine Laufzeitfehler beim Wechsel der Höhe", errors.length === 0, errors.join(" | "));
+  await page.close();
+
+  const narrow = await open({ width: 400, height: 850, slim: true });
+  for (const [view, selector] of [
+    ["day", ".board"], ["timeline", ".tlwrap"], ["week", ".weekwrap"],
+    ["month", ".monthwrap"], ["month_table", ".weekwrap"], ["agenda", ".agenda"], ["now", ".now"],
+  ]) {
+    const result = await narrow.page.evaluate(async ({ view, selector }) => {
+      const card = document.querySelector("family-board-card-month-table");
+      card.setConfig({ ...card._config, view, card_height: 500, full_height: true, fit_height: false,
+        header_position: "bottom", navigation_position: "bottom", scroll_to_now: false });
+      await card.updateComplete;
+      const root = card.renderRoot;
+      const frame = root.querySelector("ha-card");
+      const panel = root.querySelector(selector);
+      const footer = root.querySelector(".top");
+      const horizontal = panel.scrollWidth - panel.clientWidth;
+      panel.scrollLeft = horizontal;
+      return {
+        height: frame.offsetHeight, panelHeight: panel.clientHeight,
+        overflow: frame.scrollHeight - frame.clientHeight,
+        sideScroll: panel.scrollLeft,
+        footerGap: frame.getBoundingClientRect().bottom - footer.getBoundingClientRect().bottom,
+      };
+    }, { view, selector });
+    check(`Feste Höhe und Fußleiste bleiben beim Ansichtswechsel erhalten (${view})`,
+      result.height === 500 && result.panelHeight > 0 && result.overflow <= 1 &&
+      same(result.footerGap, 0), JSON.stringify(result));
+    if (view === "month_table") {
+      check("Schmale Monatstabelle bleibt horizontal scrollbar", result.sideScroll > 0);
+    }
+  }
+  await narrow.page.close();
+
+  const saver = await open({ view: "day", extra: "&saver=1" });
+  await saver.page.evaluate(async () => {
+    const card = document.querySelector("family-board-card-month-table");
+    card.setConfig({ ...card._config, card_height: 420 });
+    await card.updateComplete;
+  });
+  await saver.page.clock.fastForward(65000);
+  await saver.page.waitForTimeout(300);
+  const saverHeight = await saver.page.evaluate(() =>
+    document.querySelector("family-board-card-month-table").renderRoot
+      .querySelector("ha-card.saver")?.offsetHeight,
+  );
+  check("Der Bildschirmschoner übernimmt die exakte Kartenhöhe", saverHeight === 420);
+  await saver.page.close();
+}
+if (process.env.BROWSER_CHECK_GROUP === "fixed-card-height") await finish();
+
 /* --- source-specific line thickness and opacity -------------------- */
 if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "highlight-sliders") {
 for (const [width,dark] of [[400,false],[1080,true]]) {

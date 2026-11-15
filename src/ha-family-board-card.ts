@@ -112,6 +112,7 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   hour_height?: number; // px per hour in the day view. default 64
   hour_width?: number; // px per hour in the timeline view. default 96
   fit_height?: boolean; // shrink the day view so start..end fits without scroll
+  card_height?: number; // exact outer card height in px. Omit or set to 0 for automatic height
   full_height?: boolean; // stretch the board to the bottom of the screen (wall tablet)
   month_table_full_height?: boolean; // show every month-table row without an internal vertical scroll. default false
   month_table_inline_date?: boolean; // weekday and date on one line. default false
@@ -487,6 +488,10 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     } else {
       this.style.removeProperty("--fb-col-min");
     }
+    const height = this._cardHeight;
+    this.toggleAttribute("fixed-height", height !== undefined);
+    if (height === undefined) this.style.removeProperty("--fb-card-height");
+    else this.style.setProperty("--fb-card-height", `${height}px`);
     this.toggleAttribute("compact", config.compact === true);
     this.toggleAttribute("slim", config.slim_header === true);
     this.toggleAttribute("nav-bottom", config.navigation_position === "bottom");
@@ -535,6 +540,11 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
       this.style.removeProperty("--fb-past-opacity");
     }
     if (this.isConnected) this._startTimer();
+  }
+
+  private get _cardHeight(): number | undefined {
+    const height = this._config?.card_height;
+    return typeof height === "number" && Number.isFinite(height) && height > 0 ? height : undefined;
   }
 
   /** Views shown in the toggle (config order-independent, default all). */
@@ -887,8 +897,8 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
       if (switcher.style.getPropertyValue("--fb-view-button-width") !== width)
         switcher.style.setProperty("--fb-view-button-width", width);
     }
-    const month = this.renderRoot?.querySelector<HTMLElement>(".month-table");
-    if (month && this._config.month_table_fill_height) {
+    const month = this.renderRoot?.querySelector<HTMLElement>(".month-table.fill-month");
+    if (month) {
       const footer =
         (this.renderRoot.querySelector<HTMLElement>(".bottom-nav")?.offsetHeight ?? 0) +
         (this._config.header_position === "bottom"
@@ -932,7 +942,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
   private _applyFullHeight(): void {
     const board = this.renderRoot?.querySelector(".board") as HTMLElement | null;
     if (!board) return;
-    if (!this._config?.full_height) {
+    if (!this._config?.full_height || this._cardHeight !== undefined) {
       if (board.style.height) {
         board.style.height = "";
         board.style.maxHeight = "";
@@ -2375,7 +2385,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     const url = this._saverUrl;
     return html`<ha-card
       class="saver"
-      style=${this._boardH ? `height:${this._boardH}px` : ""}
+      style=${this._cardHeight === undefined && this._boardH ? `height:${this._boardH}px` : ""}
       role="button"
       tabindex="0"
       aria-label="${formatTime(this.hass, now)} ${date} – ${this._t("saver_close")}"
@@ -3435,6 +3445,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
 
   /** Shared days-by-person table for a week or an exact calendar month. */
   private _renderPeopleTable(month = false) {
+    const fill = month && this._cardHeight === undefined && this._config.month_table_fill_height;
     const short = weekdayNames(this.hass, "short", month ? this._firstDayJs : this._weekStartJs);
     const { start, numDays } = this._monthBounds();
     const hiddenCalendars =
@@ -3479,7 +3490,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     return html`
       <div class="weekhead">${month ? this._monthNav() : this._weekNav()}</div>
       <div
-        class="weekwrap ${month ? "month-table" : ""} ${month && this._config.month_table_fill_height ? "fill-month" : ""} ${month && this._config.month_table_marker_grow && this._config.month_table_marker_mode !== "indicator" ? "grow-markers" : ""} ${month && this._config.month_table_marker_mode === "indicator" ? "indicator-only" : ""} ${
+        class="weekwrap ${month ? "month-table" : ""} ${fill ? "fill-month" : ""} ${month && this._config.month_table_marker_grow && this._config.month_table_marker_mode !== "indicator" ? "grow-markers" : ""} ${month && this._config.month_table_marker_mode === "indicator" ? "indicator-only" : ""} ${
           month && this._config.month_table_full_height ? "full-month" : ""
         } ${month && this._config.month_table_inline_date ? "inline-date" : ""} ${
           month && this._config.month_table_compact_header ? "compact-header" : ""
@@ -4395,6 +4406,28 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     ha-card {
       overflow: hidden;
       color: var(--primary-text-color);
+    }
+    :host([fixed-height]) ha-card {
+      box-sizing: border-box;
+      height: var(--fb-card-height);
+    }
+    :host([fixed-height]) ha-card:not(.saver) {
+      display: flex;
+      flex-direction: column;
+      /* Keep chrome reachable even when it alone exceeds the configured height. */
+      overflow-y: auto;
+    }
+    :host([fixed-height]) ha-card > * {
+      flex: none;
+    }
+    :host([fixed-height]) ha-card > :is(.board, .tlwrap, .weekwrap, .monthwrap, .agenda, .now) {
+      flex: 1 1 0;
+      min-height: 0;
+      max-height: none;
+      overflow: auto;
+    }
+    :host([fixed-height]) ha-card.saver {
+      min-height: 0;
     }
     .top {
       display: flex;

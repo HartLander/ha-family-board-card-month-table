@@ -23,6 +23,8 @@ The table has sticky person headers and a date column, month navigation, event d
 
 To show the whole month without an internal vertical scrollbar, enable **Layout & size → Show the entire month in the month table**, or set `month_table_full_height: true`. The card grows to fit every row; on smaller screens the dashboard itself may still scroll. Horizontal scrolling remains available for many people. This option defaults to `false`, keeping the existing scrollable table and its sticky headers.
 
+Set **Layout & size → Fixed card height** (for example, `card_height: 720`) to reserve an exact height for the whole card, including title and navigation. The calendar scrolls inside that space as needed. Month-table rows keep their configured minimum height, and any unused space stays below them. A fixed height takes precedence over `full_height`, `month_table_fill_height`, and `month_table_full_height`. Clear the value or enter 0 to return to automatic height.
+
 **Layout & size** also offers a **weekday and date on one line** switch, a compact person header (avatar beside name), and sliders for month-table font size, minimum row height, vertical padding and event spacing. These controls apply only to `month_table`. Rows still grow to show all events, and the date column widens for large text. A compact starting point for a wall display:
 
 ```yaml
@@ -279,6 +281,7 @@ persons:
 | `month_table_row_height` | number | `48` | Minimum cell content height, 16–96 px, plus padding; busy rows grow as needed |
 | `month_table_row_padding` | number | `4` | Vertical padding, 0–12 px; also adjusts date and event-chip padding |
 | `month_table_event_gap` | number | `3` | Vertical gap between event chips, 0–12 px |
+| `card_height` | number | — | Exact height of the whole card in pixels, including controls. Empty or 0 uses automatic height. |
 | `full_height` | boolean | `false` | Stretch the board to the bottom of the screen (panel / wall tablet view); the default is a 58 % cap |
 | `trim_hours` | boolean | `true` | Day view: cut away empty hours at the edges so the busy part of the day gets the full height (min. 6 h window; `start_hour`/`end_hour` stay the outer bounds) |
 | `col_min_width` | number | `120` | Minimum width (px) per person column, below that the board scrolls horizontally; above it the columns grow with the card width |
