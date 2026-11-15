@@ -1,6 +1,6 @@
 # Family Board Card – Month Table
 
-This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.31.2**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` and registers a separate card, `custom:family-board-card-month-table`. You can load both cards together and compare them using the same calendar configuration.
+This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.33.0**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` and registers a separate card, `custom:family-board-card-month-table`. You can load both cards together and compare them using the same calendar configuration.
 
 **Fork version: `0.31.2-month-table.5`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
@@ -100,18 +100,28 @@ With `month_table_marker_grow: false`, marking text uses spare row space and is 
 
 ![Family Board Card – day view](docs/preview-day-en.png)
 
-<details>
-<summary><b>See the other views</b> (timeline, agenda)</summary>
-
-**Timeline** – people as rows, time running horizontally:
-
-![Family Board Card – timeline](docs/preview-timeline-en.png)
-
-**Agenda** – chronological, grouped by day, jumps to today on load:
-
-<img src="docs/preview-agenda-en.png" alt="Family Board Card – agenda" width="380">
-
-</details>
+<table>
+<tr>
+<td valign="top"><b>Now</b> – the wall tablet at a glance: who is doing what, and what comes next<br><img src="docs/preview-now-en.png" alt="Family Board Card – Now"></td>
+<td valign="top"><b>Week</b> – everyone's week, with weather and family events under each day<br><img src="docs/preview-week-en.png" alt="Family Board Card – Week"></td>
+</tr>
+<tr>
+<td valign="top"><b>Month</b> – holidays, bin days and everyone's plans in one grid<br><img src="docs/preview-month-en.png" alt="Family Board Card – Month"></td>
+<td valign="top"><b>Timeline</b> – people as rows, the day running left to right<br><img src="docs/preview-timeline-en.png" alt="Family Board Card – Timeline"></td>
+</tr>
+<tr>
+<td valign="top"><b>Agenda</b> – a list for the phone that opens on today<br><img src="docs/preview-agenda-en.png" alt="Family Board Card – Agenda"></td>
+<td valign="top"><b>On the phone</b> – the day view on a small screen<br><img src="docs/preview-phone-en.png" alt="Family Board Card – On the phone"></td>
+</tr>
+<tr>
+<td valign="top"><b>Dark mode</b> – follows your Home Assistant theme<br><img src="docs/preview-dark-en.png" alt="Family Board Card – Dark mode"></td>
+<td valign="top"><b>Night screen</b> – calm and dim from `night_start` to `night_end`; a tap wakes the board<br><img src="docs/preview-night-en.png" alt="Family Board Card – Night screen"></td>
+</tr>
+<tr>
+<td valign="top"><b>Rides</b> – who drives whom: “🚗 Ben” on the pick-up, and a warning when the driver is busy<br><img src="docs/preview-rides-en.png" alt="Family Board Card – Rides"></td>
+<td valign="top"><b>Photo screensaver</b> – family photos from a Media folder with a large clock; a tap brings the board back<br><img src="docs/preview-saver-en.png" alt="Family Board Card – Photo screensaver"></td>
+</tr>
+</table>
 
 A family calendar — a “who is where, when” board — for [Home Assistant](https://www.home-assistant.io/). People are columns across the top (with the avatar from their `person.*` entity), time runs down the left. The card shows at a glance which activities happen at the same time in different places — for up to 10 people.
 
@@ -124,23 +134,28 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Slim header** – `slim_header` moves the weekday buttons onto the navigation line and puts the avatar next to the name: about 40 px less header, more room for the day.
 - **Can start on another day** – `day_offset` shifts the day and timeline views by N days (`1` = tomorrow). Meant for displays that should show the day ahead – an e-paper panel in the hallway, say.
 - **Day check** – optional warning chips above the day and timeline views: one person booked twice, an unsupervised gap between two events (the pick-up!), or everyone out at the same time (“nobody home”). Windows that are already over disappear on their own.
+- **Birthdays with age** – with `birthday_age: true`, a birthday with the year of birth in its title – “Grandma’s birthday (1946)”, “Max *2019” – shows as “Grandma’s birthday (turns 80)”, in every view and in the countdown chips. Only the display changes; the calendar keeps its title.
+- **Private events** – events whose title or description contains a `private_patterns` entry (e.g. `#private`), or every event of a calendar marked `private: true`, show only “🔒 Private” and the time. Place and notes stay hidden, the event cannot be opened or dragged, and the browser cache keeps no details. The time still counts for the day check.
+- **Rides** – mark the people who drive with `driver: true`. Events such as “Pick up Mia” or “Ben: drop off Leon” become rides: the driver named in the event takes it, otherwise the owner if they drive. The event shows “🚗 Ben”, and the day check warns when nobody drives (“🚗 ?”) or the driver has something else at that time. `ride_patterns` sets your own words.
+- **“Still at home”** – with `late_warning` (minutes) the board warns when someone has an event with a place coming up and Home Assistant still sees them at home: “🚪 Anna still at home – Dentist 10:30” in the day check and in the now view. Uses the `person.*` entity; events without a place or at home are left out.
 - **“Now / next” bar** – optional highlight row above the views: per person, what is running right now (with a pulsing dot) or what is coming next (incl. countdown) – made for the wall tablet.
-- **Now view** – a calm full-card glance for a wall tablet or a small display: large clock and date, and per person what is running right now (with progress), today's all-day events and what comes next (“in 25 min”, “16:30”, “Tomorrow 08:00”). Opt-in: add `now` to `views`, or set `view: now`. Combined with `auto_return` the tablet always falls back to it.
+- **Now view** – a calm full-card glance for a wall tablet or a small display: large clock and date, and per person what is running right now (with progress), today's all-day events and what comes next (“in 25 min”, “16:30”, “Tomorrow 08:00”). Opt-in: add `now` to `views`, or set `view: now`. Combined with `auto_return` the tablet always falls back to it. With `night_start` / `night_end` the wall tablet turns into a calm, dark night screen – big clock and what comes first tomorrow – and a tap wakes it, or a motion sensor (`night_wake_entity`) as soon as someone walks by. With `screensaver_media` (a folder from Media, e.g. `media-source://media_source/local/photos`) the board turns into a photo slideshow with a large clock after a while without touch; a tap brings the board back. With `countdowns` (keywords such as `holiday`, `birthday`) coming events that match show as chips – “🏖️ Holiday in 12 days”, up to `countdown_days` (default 60) ahead.
 - **Accessible** – fully usable by keyboard (arrow keys in the tab lists, focus moves into the dialog and stays there until Esc), and screen readers announce events with title, time and person. Checked with axe-core in every view.
 - **Auto icons** – optionally every event gets a matching emoji by keyword (doctor → 🩺, sport → 🏃, birthday → 🎂, school → 🎒 …); custom rules possible. Titles that already contain an emoji stay untouched.
 - **Timeline view** – people as rows on the left, time running horizontally: events as bars on a timeline (Gantt style); overlapping events stack into sub-rows.
 - **Pick your views** – choose in the editor which switchers (now/day/timeline/week/month/month_table/agenda) appear.
-- **Week navigation** – page back and forth, a click on the date range jumps back to “today”.
+- **Week navigation** – page back and forth, a click on the date range jumps back to “today”. With `swipe: true`, a swipe on a touch screen pages too: a day in the day view and timeline, a week in the week view and agenda, a month in either month view. Where the board itself scrolls sideways (a wide timeline on a phone), scrolling wins.
 - **Theme-aware** – picks up the colors and fonts of the active dashboard theme (uses HA CSS variables throughout).
 - **Configurable** – 15/30/60 min grid, day window, weekend on/off, color by person or location, auto refresh.
 - **Drag & drop** – in the day view, drag events to move them (time) and drag the bottom edge to change the duration; snaps to the time grid and writes straight back to the calendar – **only** for writable calendars and single events (no series).
-- **Manage events** – create/edit/delete right in the card, **but only** for calendars that support it (Local Calendar, CalDAV …). Read-only calendars (e.g. ICS subscriptions) are detected automatically and shown read-only. Recurring events: choose **“this event only / this and following”**.
+- **Manage events** – create/edit/delete right in the card, **but only** for calendars that support it (Local Calendar, CalDAV …). Read-only calendars (e.g. ICS subscriptions) are detected automatically and shown read-only. New events can repeat (**every day, week, month or year**, optionally until a date) – "football every Tuesday" is one entry. Recurring events: choose **“this event only / this and following”** when editing.
 - **Several calendars per person** – e.g. work + private in one column (selectable in the editor).
 - **Family calendars** – calendars that belong to everyone (public holidays, school holidays, bin collection) go into `family_calendars`. Their events appear as a band above the people in the day, timeline and now views, under the weekday in the week view, in the month cells and in the agenda – and never count as a double booking. Icon and color come from the `calendars:` mapping (e.g. `mdi:trash-can`).
 - **Robust event logic** – all-day events (exclusive end), events across midnight and multi-day events are split onto the correct days; time zones are respected.
 - **Multilingual & localized** – texts in English/German, weekday names and clock format (12/24 h) from the HA locale; relative days (“Today/Tomorrow”).
 - **Everyday polish** – past events dimmed, coloring by calendar, open a location straight in the maps app, hide noisy events by pattern.
 - **Live progress & countdown** – running events show a progress bar (can be turned off), upcoming ones show “in 20 min” in the agenda; updates every minute.
+- **Live updates, instant start** – on Home Assistant 2026.5 or newer the board subscribes to its calendars: an appointment added on a phone appears on the wall tablet right away, without waiting for the refresh. After a reload the last known events show at once while the fresh ones load (kept per board in the browser, at most a day old). Older Home Assistant versions keep refreshing as before.
 - **Weather** – daily forecast from a `weather.*` entity (HA location, not the event address): icon with high/low in the day, timeline and agenda headers, icon + high next to each weekday in the week view, icon in the month cells.
 - **Busy days stay readable** – if more events overlap than `max_columns` allows, the extra columns are collapsed into a “+N” chip (click opens the agenda) instead of shrinking into unreadable slivers.
 - **Long events as a background band** – long-running events (after-school care, “free play”) beyond a configurable length run as a subtle full-width band behind the column instead of squeezing the short events sideways. The real appointments get the full width.
@@ -216,10 +231,11 @@ persons:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `persons` | list | – | 1–10 people with `name`, `person`, `calendar` (string **or list**), optionally `color`, `badges` (entities as chips) and `hidden` (starts collapsed) |
+| `persons` | list | – | 1–10 people with `name`, `person`, `calendar` (string **or list**), optionally `color`, `badges` (entities as chips) `hidden` (starts collapsed) and `driver` (drives: rides get assigned to them) |
 | `persons[].tasks` | string/list | – | `todo.*` list(s) of this person; tasks due today and overdue ones appear as chips (day view + agenda). Without it the card queries no list at all |
 | `hide_empty_persons` | boolean | `false` | Week/month table: hide people without events in the period |
 | `show_alerts` | boolean | `false` | Day check above the day/timeline views: double bookings, care gaps and “nobody home” as chips |
+| `late_warning` | number | `0` | “Still at home” warning: minutes before an event with a place, while the person’s `person.*` is still `home` (0 = off) |
 | `gap_min` | number | `60` | How many minutes a gap between two of a person's events must reach to be flagged (0 = off) |
 | `show_focus` | boolean | `false` | “Now / next” bar per person above the views |
 | `drag_drop` | boolean | `true` | Move / resize events in the day view by dragging (writable single events only) |
@@ -241,13 +257,15 @@ persons:
 | `replace_patterns` | list | – | Clean up titles: `"search => replacement"` (without `=>` the text is removed) |
 | `hide_past` | boolean | `false` | Agenda: skip the days before today so the list starts at today (a week you paged back to still shows everything) |
 | `filter_duplicates` | boolean | `false` | Show identical events (title + time) only once per person and in the agenda |
-| `calendars` | map | – | Per calendar `color`, `label`, `icon` (mdi) and `title_field` (editable in the editor) |
+| `calendars` | map | – | Per calendar `color`, `label`, `icon` (mdi), `title_field` and `private: true` (every event shows only “Private”) – all editable in the editor |
 | `compact` | boolean | `false` | Compact layout: smaller fonts and tighter spacing |
 | `map_url` | string | Google | Template for the location link, `{location}` is substituted, e.g. `https://maps.apple.com/?q={location}` |
 | `event_size` | number | – | Font size of the event titles in px (editor slider, sets `--fb-event-size`) |
 | `radius` | number | – | Corner radius of the event blocks in px (sets `--fb-radius`) |
 | `past_opacity` | number | – | Opacity of past events in % (sets `--fb-past-opacity`) |
 | `show_progress` | boolean | `true` | Progress bar on the running event |
+| `countdowns` | list | – | Now view: keywords (e.g. `[holiday, birthday]`); coming events whose title matches show as “in 12 days” chips |
+| `countdown_days` | number | `60` | How many days ahead countdowns look |
 | `family_calendars` | list | – | `calendar.*` entities for everyone (holidays, bin collection …), shown above the people |
 | `weather_entity` | string | – | `weather.*` entity for the daily forecast (HA location) |
 | `show_weather` | boolean | `true`* | Show the weather in the views (*only takes effect when `weather_entity` is set) |
@@ -267,11 +285,18 @@ persons:
 | `background_hours` | number | `3` | Timed events from this length (hrs.) on are drawn as a subtle background band instead of a column; `0` = off |
 | `max_columns` | number | `3` | Max. side-by-side columns per person/day; with more overlaps a “+N” chip appears (1–8) |
 | `tentative_patterns` | list | – | Mark events with a matching title pattern as tentative (dashed / translucent) |
+| `private_patterns` | list | – | Text in title or description that makes an event private: only “Private” and the time are shown |
+| `birthday_age` | boolean | `false` | Birthdays with a year of birth (“(1946)”, “*1946”) show the age they turn |
+| `ride_patterns` | list | pick up, drop off, ride, abholen, bringen … | Words that make an event a ride (whole words). Only used once a person has `driver: true` |
 | `day_offset` | number | `0` | Day/timeline view starts N days off: `1` = tomorrow, `-1` = yesterday. The shift crosses the week boundary correctly and survives `auto_return` (for e-paper and info displays) |
 | `slim_header` | boolean | `false` | Slim header: the weekday buttons move onto the navigation line and the avatar sits next to the name – saves about 40 px of height |
-| `first_day` | string | `monday` | Week starts on `monday` or `sunday` |
+| `first_day` | string | `monday` | Week starts on `monday`, `sunday` or `today` – a rolling week: today and the next six days, so a wall tablet on Sunday already shows the coming week (the month grid keeps Monday columns) |
+| `night_start` / `night_end` | time | – | Night screen between these times (e.g. `"21:00"` / `"06:30"`): a dark, dimmed clock with what comes next; a tap wakes the board for `auto_return` minutes (at least 2). Both needed |
+| `night_wake_entity` | entity / list | – | Motion or presence sensor(s): while one reports `on` the night screen stays awake, and for `auto_return` minutes (at least 2) after |
+| `screensaver_media` / `screensaver_after` / `screensaver_interval` | text / number / number | – / `10` / `20` | Photo slideshow with clock from a Media folder after `screensaver_after` minutes without touch, `screensaver_interval` seconds per photo. A tap (or Enter) shows the board again; the night screen takes precedence |
+| `swipe` | boolean | `false` | Touch screens: swipe left/right for the next/previous day, week or month (on by default in the wall-tablet and phone profiles) |
 | `scroll_to_now` | boolean | `true` | Scroll to “now” on load: the day view to the current time, the timeline horizontally to the now line, the agenda to today's section (or the next day with events when today has none) |
-| `refresh_interval` | number | `300` | Auto refresh of the events in seconds (0 = off); additionally when the tablet wakes up |
+| `refresh_interval` | number | `300` | Auto refresh of the events in seconds (0 = off); additionally when the tablet wakes up. On Home Assistant 2026.5+ changes arrive live anyway – this is the safety net |
 
 Every `calendar.*` entity works – no matter whether `local_calendar` (local, no cloud), Google or CalDAV. Home Assistant delivers them all in the same shape.
 

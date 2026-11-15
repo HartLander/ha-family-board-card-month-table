@@ -1,6 +1,6 @@
 # Family Board Card – Month Table
 
-Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.31.2**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
+Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.33.0**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
 
 **Fork-Version: `0.31.2-month-table.5`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
@@ -100,18 +100,28 @@ Bei `month_table_marker_grow: false` nutzt Text nur freien Platz in der Zeile un
 
 ![Family Board Card – Tagesansicht](docs/preview-day.png)
 
-<details>
-<summary><b>Weitere Ansichten ansehen</b> (Zeitstrahl, Agenda)</summary>
-
-**Zeitstrahl** – Personen als Zeilen, die Zeit läuft horizontal:
-
-![Family Board Card – Zeitstrahl](docs/preview-timeline.png)
-
-**Agenda** – chronologisch, nach Tagen gruppiert, springt beim Laden auf heute:
-
-<img src="docs/preview-agenda.png" alt="Family Board Card – Agenda" width="380">
-
-</details>
+<table>
+<tr>
+<td valign="top"><b>Jetzt</b> – das Wandtablet auf einen Blick: wer gerade was macht und was als Nächstes kommt<br><img src="docs/preview-now.png" alt="Family Board Card – Jetzt"></td>
+<td valign="top"><b>Woche</b> – die Woche aller, mit Wetter und Familien-Terminen unter jedem Tag<br><img src="docs/preview-week.png" alt="Family Board Card – Woche"></td>
+</tr>
+<tr>
+<td valign="top"><b>Monat</b> – Ferien, Mülltage und die Pläne aller in einem Raster<br><img src="docs/preview-month.png" alt="Family Board Card – Monat"></td>
+<td valign="top"><b>Zeitstrahl</b> – Personen als Zeilen, der Tag läuft von links nach rechts<br><img src="docs/preview-timeline.png" alt="Family Board Card – Zeitstrahl"></td>
+</tr>
+<tr>
+<td valign="top"><b>Agenda</b> – eine Liste fürs Handy, die bei heute aufgeht<br><img src="docs/preview-agenda.png" alt="Family Board Card – Agenda"></td>
+<td valign="top"><b>Auf dem Handy</b> – die Tagesansicht auf kleinem Bildschirm<br><img src="docs/preview-phone.png" alt="Family Board Card – Auf dem Handy"></td>
+</tr>
+<tr>
+<td valign="top"><b>Dunkles Design</b> – folgt deinem Home-Assistant-Theme<br><img src="docs/preview-dark.png" alt="Family Board Card – Dunkles Design"></td>
+<td valign="top"><b>Nachtbildschirm</b> – ruhig und gedimmt von `night_start` bis `night_end`; Antippen weckt das Board<br><img src="docs/preview-night.png" alt="Family Board Card – Nachtbildschirm"></td>
+</tr>
+<tr>
+<td valign="top"><b>Fahrdienst</b> – wer fährt wen: „🚗 Ben“ an der Abholung und eine Warnung, wenn der Fahrer belegt ist<br><img src="docs/preview-rides.png" alt="Family Board Card – Fahrdienst"></td>
+<td valign="top"><b>Foto-Bildschirmschoner</b> – Familienfotos aus einem Medienordner mit großer Uhr; Antippen holt das Board zurück<br><img src="docs/preview-saver.png" alt="Family Board Card – Foto-Bildschirmschoner"></td>
+</tr>
+</table>
 
 Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https://www.home-assistant.io/). Personen stehen als Spalten oben (mit Avatar aus der `person.*`-Entität), links läuft die Zeitleiste. Die Karte zeigt auf einen Blick, welche Aktivitäten gleichzeitig an unterschiedlichen Orten stattfinden — für bis zu 10 Personen.
 
@@ -124,23 +134,28 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Schlanker Kopfbereich** – `slim_header` schiebt die Wochentage auf die Navigationszeile und stellt den Avatar neben den Namen: rund 40 px weniger Kopf, mehr Platz für den Tag.
 - **Startet auch an einem anderen Tag** – `day_offset` verschiebt Tages- und Zeitstrahl-Ansicht um N Tage (`1` = morgen). Gedacht für Anzeigen, die den kommenden Tag zeigen sollen – etwa ein E-Paper-Display im Flur.
 - **Tages-Check** – optionale Warn-Chips über Tages- und Zeitstrahl-Ansicht: eine Person doppelt verplant, eine unbetreute Lücke zwischen zwei Terminen (Abholung!) oder alle gleichzeitig unterwegs („niemand zuhause"). Bereits vergangene Fenster verschwinden von selbst.
+- **Geburtstage mit Alter** – mit `birthday_age: true` wird ein Geburtstag mit Geburtsjahr im Titel – „Geburtstag Oma (1946)“, „Max *2019“ – zu „Geburtstag Oma (wird 80)“, in allen Ansichten und in den Countdown-Chips. Nur die Anzeige ändert sich; der Kalender behält seinen Titel.
+- **Private Termine** – Termine, deren Titel oder Beschreibung einen Eintrag aus `private_patterns` enthält (z. B. `#privat`), oder alle Termine eines Kalenders mit `private: true` zeigen nur „🔒 Privat“ und die Uhrzeit. Ort und Notizen bleiben verborgen, der Termin lässt sich weder öffnen noch verschieben, und der Browser-Cache speichert keine Details. Für den Tages-Check zählt die Zeit trotzdem.
+- **Fahrdienst** – wer fährt, bekommt `driver: true`. Termine wie „Mia abholen“ oder „Ben: Leon bringen“ werden zu Fahrten: Fahrer ist, wer im Termin genannt wird, sonst der Besitzer, wenn er fährt. Am Termin steht „🚗 Ben“, und der Tages-Check warnt, wenn niemand fährt („🚗 ?“) oder der Fahrer zur selben Zeit schon etwas vorhat. Eigene Wörter mit `ride_patterns`.
+- **„Noch zuhause"** – mit `late_warning` (Minuten) warnt das Board, wenn bei jemandem bald ein Termin mit Ort ansteht und Home Assistant die Person noch zuhause sieht: „🚪 Anna noch zuhause – Zahnarzt 10:30" im Tages-Check und in der Jetzt-Ansicht. Nutzt die `person.*`-Entität; Termine ohne Ort oder zuhause zählen nicht.
 - **„Jetzt / als Nächstes"-Leiste** – optionale Glanz-Zeile über den Ansichten: pro Person auf einen Blick, was gerade läuft (mit Puls-Punkt) oder als Nächstes ansteht (inkl. Countdown) – ideal fürs Wandtablet.
-- **Jetzt-Ansicht** – ein ruhiger Überblick über die ganze Karte fürs Wandtablet oder ein kleines Display: große Uhr und Datum, pro Person was gerade läuft (mit Fortschritt), ganztägige Termine von heute und was als Nächstes kommt („in 25 Min.", „16:30", „Morgen 08:00"). Opt-in: `now` in `views` aufnehmen oder `view: now` setzen. Zusammen mit `auto_return` kehrt das Tablet immer dorthin zurück.
+- **Jetzt-Ansicht** – ein ruhiger Überblick über die ganze Karte fürs Wandtablet oder ein kleines Display: große Uhr und Datum, pro Person was gerade läuft (mit Fortschritt), ganztägige Termine von heute und was als Nächstes kommt („in 25 Min.", „16:30", „Morgen 08:00"). Opt-in: `now` in `views` aufnehmen oder `view: now` setzen. Zusammen mit `auto_return` kehrt das Tablet immer dorthin zurück. Mit `night_start` / `night_end` wird das Wandtablet nachts zum ruhigen, dunklen Nachtbildschirm – große Uhr und was morgen als Erstes ansteht – und Antippen weckt es, oder ein Bewegungsmelder (`night_wake_entity`), sobald jemand vorbeikommt. Mit `screensaver_media` (ein Ordner aus „Medien“, z. B. `media-source://media_source/local/fotos`) wird das Board nach einer Weile ohne Berührung zur Foto-Diashow mit großer Uhr; Antippen holt das Board zurück. Mit `countdowns` (Stichworte wie `urlaub`, `geburtstag`) erscheinen passende kommende Termine als Chips – „🏖️ Urlaub in 12 Tagen“, bis `countdown_days` (Standard 60) Tage voraus.
 - **Barrierearm** – komplett per Tastatur bedienbar (Pfeiltasten in den Tab-Leisten, der Fokus springt in den Dialog und bleibt dort bis Esc), Screenreader lesen Termine mit Titel, Uhrzeit und Person vor. In jeder Ansicht mit axe-core geprüft.
 - **Auto-Symbole** – optional bekommt jeder Termin per Stichwort ein passendes Emoji (Arzt → 🩺, Sport → 🏃, Geburtstag → 🎂, Schule → 🎒 …); eigene Regeln möglich. Titel, die schon ein Emoji haben, bleiben unberührt.
 - **Zeitstrahl-Ansicht** – Personen als Zeilen links, die Zeit läuft horizontal: Termine als Balken auf einem Zeitstrahl (Gantt-Stil); überlappende Termine stapeln sich in Unterzeilen.
 - **Ansichten wählbar** – im Editor festlegen, welche Umschalter (Jetzt/Tag/Zeitstrahl/Woche/Monat/Monatstabelle/Agenda) erscheinen.
-- **Wochen-Navigation** – vor/zurück blättern, ein Klick auf den Datumsbereich springt zurück zu „heute".
+- **Wochen-Navigation** – vor/zurück blättern, ein Klick auf den Datumsbereich springt zurück zu „heute". Mit `swipe: true` blättert auf Touchscreens auch Wischen: einen Tag in Tagesansicht und Zeitstrahl, eine Woche in Woche und Agenda, einen Monat in den Monatsansichten. Wo das Board selbst seitlich scrollt (ein breiter Zeitstrahl auf dem Handy), gewinnt das Scrollen.
 - **Theme-aware** – übernimmt Farben und Schrift des aktiven Dashboard-Themes (nutzt durchgehend HA-CSS-Variablen).
 - **Konfigurierbar** – Zeitraster 15/30/60 min, Tagesfenster, Wochenende ein/aus, Einfärben nach Person oder Ort, Auto-Aktualisierung.
 - **Drag & Drop** – in der Tagesansicht Termine per Ziehen verschieben (Uhrzeit) und am unteren Rand die Dauer ändern; rastet aufs Zeitraster und schreibt direkt in den Kalender zurück – **nur** bei schreibbaren Kalendern, Einzeltermine (keine Serien).
-- **Termine verwalten** – anlegen/bearbeiten/löschen direkt in der Karte, **aber nur** bei Kalendern, die das unterstützen (Local Calendar, CalDAV …). Schreibgeschützte Kalender (z. B. ICS-Abos) werden automatisch erkannt und nur angezeigt. Wiederkehrende Termine: Wahl **„nur dieser / dieser und folgende"**.
+- **Termine verwalten** – anlegen/bearbeiten/löschen direkt in der Karte, **aber nur** bei Kalendern, die das unterstützen (Local Calendar, CalDAV …). Schreibgeschützte Kalender (z. B. ICS-Abos) werden automatisch erkannt und nur angezeigt. Neue Termine lassen sich wiederholen (**jeden Tag, jede Woche, jeden Monat oder jedes Jahr**, optional bis zu einem Datum) – „jeden Dienstag Fußball" ist ein einziger Eintrag. Wiederkehrende Termine: beim Bearbeiten Wahl **„nur dieser / dieser und folgende"**.
 - **Mehrere Kalender pro Person** – z. B. Arbeit + privat in einer Spalte (im Editor auswählbar).
 - **Familien-Kalender** – Kalender, die allen gehören (Feiertage, Schulferien, Müllabfuhr), kommen in `family_calendars`. Ihre Termine erscheinen als Band über den Personen in Tag, Zeitstrahl und Jetzt-Ansicht, unter dem Wochentag in der Woche, in den Monatszellen und in der Agenda – und zählen nie als Doppelbuchung. Symbol und Farbe kommen aus der `calendars:`-Zuordnung (z. B. `mdi:trash-can`).
 - **Robuste Termin-Logik** – Ganztags-Events (Ende exklusiv), über Mitternacht laufende und mehrtägige Termine werden korrekt auf die Tage aufgeteilt; Zeitzonen werden berücksichtigt.
 - **Mehrsprachig & lokalisiert** – Texte in Deutsch/Englisch, Wochentage und Uhrzeiten (12/24 h) aus der HA-Locale; relative Tage („Heute/Morgen").
 - **Alltags-Politur** – vergangene Termine ausgegraut, Einfärben auch nach Kalender, Ort direkt in der Karten-App öffnen, störende Termine per Muster ausblenden.
 - **Live-Fortschritt & Countdown** – laufende Termine zeigen einen Fortschrittsbalken (abschaltbar), kommende in der Agenda ein „in 20 Min."; aktualisiert minütlich.
+- **Live-Updates, Sofort-Start** – ab Home Assistant 2026.5 abonniert das Board seine Kalender: Ein auf dem Handy angelegter Termin erscheint sofort auf dem Wandtablet, ohne auf die Aktualisierung zu warten. Nach dem Neuladen stehen die zuletzt bekannten Termine sofort da, bis die frischen geladen sind (pro Board im Browser, höchstens einen Tag alt). Ältere Home-Assistant-Versionen aktualisieren wie bisher.
 - **Wetter** – Tagesvorhersage aus einer `weather.*`-Entität (HA-Standort, nicht die Termin-Adresse): Symbol mit Höchst-/Tiefstwert im Kopf von Tag, Zeitstrahl und Agenda, Symbol + Höchstwert am Wochentag in der Wochenansicht, Symbol in den Monatszellen.
 - **Dichte Tage bleiben lesbar** – überlappen mehr Termine als `max_columns` erlaubt, werden die zusätzlichen Spalten zu einem „+N"-Chip zusammengefasst (Klick öffnet die Agenda) statt zu unlesbar schmalen Streifen zu schrumpfen.
 - **Lange Termine als Hintergrund-Band** – Dauertermine (z. B. OGS/Betreuung, „Freispiel") ab einer einstellbaren Länge laufen als dezentes Vollbreiten-Band hinter der Spalte, statt die kurzen Stunden nebeneinander zu quetschen. So bekommen die eigentlichen Termine die volle Breite.
@@ -216,10 +231,11 @@ persons:
 
 | Option          | Typ     | Default | Beschreibung |
 |-----------------|---------|---------|--------------|
-| `persons`       | Liste   | –       | 1–10 Personen mit `name`, `person`, `calendar` (String **oder Liste**), optional `color`, `badges` (Entitäten als Chips) und `hidden` (startet eingeklappt) |
+| `persons`       | Liste   | –       | 1–10 Personen mit `name`, `person`, `calendar` (String **oder Liste**), optional `color`, `badges` (Entitäten als Chips) `hidden` (startet eingeklappt) und `driver` (fährt: Fahrten werden ihr zugeordnet) |
 | `persons[].tasks` | String/Liste | – | `todo.*`-Liste(n) dieser Person; heute fällige und überfällige Aufgaben erscheinen als Chips (Tagesansicht + Agenda). Ohne Angabe fragt die Karte keine Liste ab |
 | `hide_empty_persons` | boolean | `false` | Woche/Monatstabelle: Personen ohne Termine im Zeitraum ausblenden |
 | `show_alerts`   | boolean | `false` | Tages-Check über Tag/Zeitstrahl: Doppelbuchungen, Betreuungslücken und „niemand zuhause" als Chips |
+| `late_warning`  | number  | `0`     | „Noch zuhause"-Warnung: Minuten vor einem Termin mit Ort, solange `person.*` noch `home` ist (0 = aus) |
 | `gap_min`       | number  | `60`    | Ab wie vielen Minuten eine Lücke zwischen zwei Terminen einer Person gemeldet wird (0 = aus) |
 | `show_focus`    | boolean | `false` | „Jetzt / als Nächstes"-Leiste pro Person über den Ansichten |
 | `drag_drop`     | boolean | `true`  | Termine in der Tagesansicht per Ziehen verschieben / in der Dauer ändern (nur schreibbare Einzeltermine) |
@@ -241,13 +257,15 @@ persons:
 | `replace_patterns` | Liste | –      | Titel aufräumen: `"Suchtext => Ersatz"` (ohne `=>` wird der Text entfernt) |
 | `hide_past`     | boolean | `false` | Agenda: Tage vor heute überspringen, die Liste beginnt bei heute (in zurückgeblätterten Wochen weiterhin vollständig) |
 | `filter_duplicates` | boolean | `false` | Identische Termine (Titel+Zeit) pro Person und in der Agenda nur einmal zeigen |
-| `calendars`     | Map     | –       | Pro Kalender `color`, `label`, `icon` (mdi) und `title_field` (im Editor pflegbar) |
+| `calendars`     | Map     | –       | Pro Kalender `color`, `label`, `icon` (mdi), `title_field` und `private: true` (alle Termine nur als „Privat“) – alles im Editor pflegbar |
 | `compact`       | boolean | `false` | Kompakte Darstellung: kleinere Schriften und engere Abstände |
 | `map_url`       | string  | Google  | Vorlage für den Orts-Link, `{location}` wird eingesetzt, z. B. `https://maps.apple.com/?q={location}` |
 | `event_size`    | number  | –       | Schriftgröße der Termin-Titel in px (Editor-Slider, setzt `--fb-event-size`) |
 | `radius`        | number  | –       | Ecken-Radius der Termin-Blöcke in px (setzt `--fb-radius`) |
 | `past_opacity`  | number  | –       | Deckkraft vergangener Termine in % (setzt `--fb-past-opacity`) |
 | `show_progress` | boolean | `true`  | Fortschrittsbalken am laufenden Termin |
+| `countdowns`    | Liste   | –       | Jetzt-Ansicht: Stichworte (z. B. `[urlaub, geburtstag]`); kommende Termine mit passendem Titel erscheinen als „in 12 Tagen“-Chips |
+| `countdown_days`| number  | `60`    | Wie viele Tage voraus Countdowns schauen |
 | `family_calendars` | Liste | –     | `calendar.*`-Entitäten für alle (Feiertage, Müllabfuhr …), erscheinen über den Personen |
 | `weather_entity`| string  | –       | `weather.*`-Entität für die Tages-Vorhersage (HA-Standort) |
 | `show_weather`  | boolean | `true`* | Wetter in den Ansichten anzeigen (*wirkt nur, wenn `weather_entity` gesetzt) |
@@ -267,11 +285,18 @@ persons:
 | `background_hours` | number | `3`  | Timed-Termine ab dieser Länge (Std.) als dezentes Hintergrund-Band statt als Spalte; `0` = aus |
 | `max_columns`   | number  | `3`     | Max. nebeneinander liegende Spalten pro Person/Tag; bei mehr Überlappungen erscheint ein „+N"-Chip (1–8) |
 | `tentative_patterns` | Liste | –    | Termine mit passendem Titel-Muster als vorläufig (gestrichelt/transparent) markieren |
+| `private_patterns` | Liste | – | Text in Titel oder Beschreibung, der einen Termin privat macht: nur „Privat“ und die Uhrzeit sind zu sehen |
+| `birthday_age` | boolean | `false` | Geburtstage mit Geburtsjahr („(1946)“, „*1946“) zeigen, wie alt jemand wird |
+| `ride_patterns` | Liste | abholen, bringen, Fahrt, pick up … | Wörter, die einen Termin zur Fahrt machen (ganze Wörter). Greift erst, wenn eine Person `driver: true` hat |
 | `day_offset`    | number  | `0`     | Tag-/Zeitstrahl-Ansicht startet um N Tage versetzt: `1` = morgen, `-1` = gestern. Der Versatz überspringt korrekt die Wochengrenze und bleibt auch nach `auto_return` erhalten (für E-Paper- und Info-Displays) |
 | `slim_header`   | boolean | `false` | Schlanker Kopf: Wochentage wandern auf die Navigationszeile, Avatar steht neben dem Namen – spart rund 40 px Höhe |
-| `first_day`     | string  | `monday`| Wochenstart: `monday` oder `sunday` |
+| `first_day`     | string  | `monday`| Wochenstart: `monday`, `sunday` oder `today` – eine rollende Woche: heute und die nächsten sechs Tage, so zeigt das Wandtablet am Sonntag schon die neue Woche (das Monatsraster bleibt bei Montag) |
+| `night_start` / `night_end` | Uhrzeit | – | Nachtbildschirm zwischen diesen Zeiten (z. B. `"21:00"` / `"06:30"`): dunkle, gedimmte Uhr mit dem, was als Nächstes kommt; Antippen weckt das Board für `auto_return` Minuten (mindestens 2). Beide nötig |
+| `night_wake_entity` | Entität / Liste | – | Bewegungs- oder Präsenzmelder: solange einer `on` meldet, bleibt das Board wach, danach noch `auto_return` Minuten (mindestens 2) |
+| `screensaver_media` / `screensaver_after` / `screensaver_interval` | Text / Zahl / Zahl | – / `10` / `20` | Foto-Diashow mit Uhr aus einem Medienordner nach `screensaver_after` Minuten ohne Berührung, `screensaver_interval` Sekunden pro Foto. Antippen (oder Enter) zeigt wieder das Board; der Nachtbildschirm hat Vorrang |
+| `swipe`         | boolean | `false` | Touchscreens: nach links/rechts wischen für nächsten/vorigen Tag, Woche oder Monat (in den Profilen Wandtablet und Handy schon an) |
 | `scroll_to_now` | boolean | `true`  | Beim Laden automatisch zu „jetzt“ scrollen: Tagesansicht zur aktuellen Uhrzeit, Zeitstrahl horizontal zur Jetzt-Linie, Agenda zum heutigen Abschnitt (hat heute keine Termine, zum nächsten Tag mit Terminen) |
-| `refresh_interval` | number | `300` | Auto-Aktualisierung der Termine in Sekunden (0 = aus); zusätzlich bei Tablet-Aufwachen |
+| `refresh_interval` | number | `300` | Auto-Aktualisierung der Termine in Sekunden (0 = aus); zusätzlich bei Tablet-Aufwachen. Ab Home Assistant 2026.5 kommen Änderungen ohnehin live – das ist das Sicherheitsnetz |
 
 Jede `calendar.*`-Entität funktioniert – egal ob `local_calendar` (lokal, ohne Cloud), Google oder CalDAV. Home Assistant liefert alle einheitlich.
 

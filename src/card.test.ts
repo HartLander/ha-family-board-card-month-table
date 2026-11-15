@@ -37,6 +37,16 @@ interface MountOpts {
   lang?: string;
   /** weather.forecast_home daily forecast, as weather.get_forecasts returns it. */
   forecast?: unknown[];
+  /** calendar.* entities the card may write to (create, update, delete). */
+  writable?: string[];
+  /** Extra entity states, e.g. { "person.anna": "home" }. */
+  states?: Record<string, string>;
+  /** Home Assistant with live calendar updates; "old" = command unknown. */
+  live?: "new" | "old";
+  /** The REST answer never arrives (to see what is shown before it). */
+  slowApi?: boolean;
+  /** Media folder for the screensaver: what media_source/browse_media lists. */
+  media?: Array<{ media_content_id: string; media_class: string }>;
   /** Local wall-clock time the test pretends it is. */
   now?: string;
 }
@@ -53,7 +63,10 @@ async function mount(config: Partial<FamilyBoardConfig>, opts: MountOpts = {}) {
   for (const entity of Object.keys(calendars)) {
     states[entity] = {
       state: "on",
-      attributes: { friendly_name: entity.split(".")[1], supported_features: 0 },
+      attributes: {
+        friendly_name: entity.split(".")[1],
+        supported_features: opts.writable?.includes(entity) ? 7 : 0,
+      },
     };
   }
   for (const entity of Object.keys(todos)) {
@@ -64,8 +77,16 @@ async function mount(config: Partial<FamilyBoardConfig>, opts: MountOpts = {}) {
     };
   }
   if (opts.forecast) states["weather.forecast_home"] = { state: "sunny", attributes: {} };
+  for (const [entity, state] of Object.entries(opts.states ?? {})) {
+    states[entity] = { state, attributes: { friendly_name: entity.split(".")[1] } };
+  }
   const wsCalls: Array<Record<string, unknown>> = [];
   const apiPaths: string[] = [];
+  const subs: Array<{
+    msg: Record<string, unknown>;
+    push: (events: unknown[] | null) => void;
+    unsubscribed: boolean;
+  }> = [];
   const el = document.createElement("family-board-card-month-table") as HTMLElement & {
     setConfig(c: unknown): void;
     hass: unknown;
@@ -75,12 +96,37 @@ async function mount(config: Partial<FamilyBoardConfig>, opts: MountOpts = {}) {
   el.hass = {
     locale: { language: opts.lang ?? "de", time_format: "24" },
     states,
+    connection: opts.live
+      ? {
+          subscribeMessage: async (
+            cb: (m: { events: unknown[] | null }) => void,
+            msg: Record<string, unknown>,
+          ) => {
+            if (opts.live === "old") throw new Error("Unknown command.");
+            const sub = {
+              msg,
+              push: (events: unknown[] | null) => cb({ events }),
+              unsubscribed: false,
+            };
+            subs.push(sub);
+            return async () => {
+              sub.unsubscribed = true;
+            };
+          },
+        }
+      : undefined,
     callApi: async (_method: string, path: string) => {
       apiPaths.push(path);
+      if (opts.slowApi) return new Promise(() => undefined);
       return calendars[path.split("?")[0].replace("calendars/", "")] ?? [];
     },
     callWS: async (msg: Record<string, unknown>) => {
       wsCalls.push(msg);
+      if (msg.type === "media_source/browse_media") return { children: opts.media ?? [] };
+      if (msg.type === "media_source/resolve_media") {
+        const id = String(msg.media_content_id);
+        return { url: `/media/local/${id.split("/").pop()}?authSig=x`, mime_type: "image/jpeg" };
+      }
       if (msg.type === "todo/item/list") {
         return { items: todos[msg.entity_id as string] ?? [] };
       }
@@ -103,6 +149,7 @@ async function mount(config: Partial<FamilyBoardConfig>, opts: MountOpts = {}) {
     root,
     wsCalls,
     apiPaths,
+    subs,
     text: () => (root.textContent ?? "").replace(/\s+/g, " ").trim(),
     all: (sel: string) => [...root.querySelectorAll(sel)],
     texts: (sel: string) =>
@@ -112,6 +159,7 @@ async function mount(config: Partial<FamilyBoardConfig>, opts: MountOpts = {}) {
 
 afterEach(() => {
   mounted.splice(0).forEach((el) => el.remove());
+  localStorage.clear();
   vi.useRealTimers();
 });
 
@@ -1360,5 +1408,851 @@ describe("month-table full-row colors", () => {
     expect((all(".wcell")[46] as HTMLElement).style.getPropertyValue("--fb-row-highlight")).toBe(
       "#00aaff",
     );
+  });
+});
+
+describe("auto icons", () => {
+  it("gives a nap the nap icon, even when its German name starts like lunch", async () => {
+    const calendars = {
+      "calendar.leon": [ev("Mittagessen", "11:30", "12:15"), ev("Mittagsschlaf", "12:15", "14:00")],
+    };
+    const { texts } = await mount(
+      {
+        persons: [{ name: "Leon", calendar: "calendar.leon" }],
+        view: "agenda",
+        views: ["agenda"],
+        auto_icons: true,
+      },
+      { calendars },
+    );
+    expect(texts(".agenda-title")).toEqual(["🍽️ Mittagessen", "😴 Mittagsschlaf"]);
+  });
+});
+
+describe("new recurring events", () => {
+  type Card = HTMLElement & {
+    _openCreate(idx: number, day: number, startMin?: number): void;
+    updateComplete: Promise<unknown>;
+  };
+  const persons = [{ name: "Mia", calendar: "calendar.mia" }];
+
+  async function openDialog(now = "2026-09-11T10:20:00", day = 4) {
+    const m = await mount(
+      { persons, view: "day", views: ["day"], start_hour: 7, end_hour: 20 },
+      { calendars: { "calendar.mia": [] }, writable: ["calendar.mia"], now },
+    );
+    const el = m.el as unknown as Card;
+    el._openCreate(0, day, 16 * 60);
+    await el.updateComplete;
+    const q = <T extends Element>(sel: string) => m.root.querySelector(sel) as T;
+    return { ...m, el, q };
+  }
+
+  it("saves a weekly series with its last day", async () => {
+    const { el, q, wsCalls } = await openDialog();
+    const select = q<HTMLSelectElement>(".dialog select");
+    select.value = "WEEKLY";
+    select.dispatchEvent(new Event("change"));
+    await el.updateComplete;
+    const until = q<HTMLInputElement>('.dialog input[type="date"]');
+    until.value = "2026-12-18";
+    until.dispatchEvent(new Event("input"));
+    q<HTMLInputElement>(".dialog input[type=text]").value = "Fußball";
+    q<HTMLInputElement>(".dialog input[type=text]").dispatchEvent(new Event("input"));
+    await el.updateComplete;
+    q<HTMLButtonElement>(".dialog button.primary").click();
+    await vi.advanceTimersByTimeAsync(0);
+    const create = wsCalls.find((c) => c.type === "calendar/event/create") as {
+      event: Record<string, string>;
+    };
+    // 18 Dec, end of the day in Berlin (CET) = 22:59:59 UTC
+    expect(create.event.rrule).toBe("FREQ=WEEKLY;UNTIL=20261218T225959Z");
+    expect(create.event.summary).toBe("Fußball");
+  });
+
+  it("creates a single event when repeat stays on never", async () => {
+    const { el, q, wsCalls } = await openDialog();
+    q<HTMLButtonElement>(".dialog button.primary").click();
+    await vi.advanceTimersByTimeAsync(0);
+    await el.updateComplete;
+    const create = wsCalls.find((c) => c.type === "calendar/event/create") as {
+      event: Record<string, string>;
+    };
+    expect(create.event.rrule).toBeUndefined();
+  });
+
+  it("refuses a series that would end before it starts", async () => {
+    const { el, q, wsCalls, text } = await openDialog();
+    const select = q<HTMLSelectElement>(".dialog select");
+    select.value = "DAILY";
+    select.dispatchEvent(new Event("change"));
+    await el.updateComplete;
+    const until = q<HTMLInputElement>('.dialog input[type="date"]');
+    until.value = "2026-09-01";
+    until.dispatchEvent(new Event("input"));
+    await el.updateComplete;
+    q<HTMLButtonElement>(".dialog button.primary").click();
+    await el.updateComplete;
+    expect(wsCalls.some((c) => c.type === "calendar/event/create")).toBe(false);
+    expect(text()).toContain("Die Serie kann nicht vor ihrem Beginn enden.");
+  });
+
+  it("proposes the clicked wall-clock time even on the day the clocks go back", async () => {
+    // Sunday 25 Oct 2026: 25 hours long; the 16:00 slot must stay 16:00
+    const { q } = await openDialog("2026-10-25T10:00:00", 6);
+    const start = q<HTMLInputElement>('.dialog input[type="datetime-local"]');
+    expect(start.value).toBe("2026-10-25T16:00");
+  });
+});
+
+describe("swipe to page", () => {
+  type Card = HTMLElement & {
+    _day: number;
+    _weekOffset: number;
+    _monthOffset: number;
+    updateComplete: Promise<unknown>;
+  };
+  const persons = [{ name: "Anna", calendar: "calendar.anna" }];
+  const calendars = { "calendar.anna": [ev("Büro", "09:00", "17:00")] };
+
+  /**
+   * A touch gesture from (x0, y0) to (x1, y1) on the given element; `between`
+   * runs while the finger is down (e.g. the browser scrolling something).
+   */
+  function swipe(
+    target: Element,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    between?: () => void,
+  ) {
+    const touch = (type: string, x: number, y: number, down: boolean) => {
+      const ev = new Event(type, { bubbles: true, composed: true });
+      const point = { clientX: x, clientY: y };
+      Object.defineProperty(ev, "touches", { value: down ? [point] : [] });
+      Object.defineProperty(ev, "changedTouches", { value: [point] });
+      target.dispatchEvent(ev);
+    };
+    touch("touchstart", x0, y0, true);
+    between?.();
+    touch("touchend", x1, y1, false);
+  }
+
+  async function board(extra: Partial<FamilyBoardConfig> = {}) {
+    const m = await mount(
+      {
+        persons,
+        view: "day",
+        views: ["day", "week", "month"],
+        start_hour: 7,
+        end_hour: 20,
+        swipe: true,
+        ...extra,
+      },
+      { calendars },
+    );
+    return { ...m, el: m.el as unknown as Card };
+  }
+
+  it("pages to the next and previous day in the day view", async () => {
+    const { el, root } = await board();
+    expect(el._day).toBe(4); // Friday 11 Sep
+    swipe(root.querySelector(".col") as Element, 300, 200, 150, 210);
+    expect(el._day).toBe(5);
+    swipe(root.querySelector(".col") as Element, 150, 200, 300, 190);
+    expect(el._day).toBe(4);
+  });
+
+  it("skips hidden weekend days into the next week", async () => {
+    const { el, root } = await board({ show_weekends: false });
+    swipe(root.querySelector(".col") as Element, 300, 200, 150, 200);
+    expect([el._weekOffset, el._day]).toEqual([1, 0]); // Monday of next week
+  });
+
+  it("pages weeks in the week view and months in the month view", async () => {
+    const { el, root } = await board({ view: "week" });
+    swipe(root.querySelector(".wcell") as Element, 150, 200, 300, 200);
+    expect(el._weekOffset).toBe(-1);
+    const m = await board({ view: "month" });
+    swipe(m.root.querySelector(".monthgrid") as Element, 300, 200, 100, 200);
+    expect(m.el._monthOffset).toBe(1);
+  });
+
+  it("does nothing when switched off, for scrolls, taps or a drag on an event", async () => {
+    const off = await board({ swipe: false });
+    swipe(off.root.querySelector(".col") as Element, 300, 200, 150, 200);
+    expect(off.el._day).toBe(4);
+
+    const { el, root } = await board();
+    const col = root.querySelector(".col") as Element;
+    swipe(col, 300, 200, 200, 500); // 100 px sideways, 300 down: a scroll
+    swipe(col, 300, 200, 270, 200); // too short: a tap
+    const scroller = root.querySelector(".board") as HTMLElement;
+    swipe(col, 300, 200, 100, 200, () => (scroller.scrollLeft = 120)); // the browser scrolled
+    expect(el._day).toBe(4);
+  });
+
+  it("leaves dragging an event alone, but pages over events that only open on tap", async () => {
+    // read-only calendar: the event only opens on tap, so a swipe over it pages
+    const ro = await board();
+    swipe(ro.root.querySelector(".event, .band") as Element, 300, 200, 100, 200);
+    expect(ro.el._day).toBe(5);
+    // writable calendar: the event is draggable, the gesture belongs to it
+    const m = await mount(
+      { persons, view: "day", views: ["day"], start_hour: 7, end_hour: 20, swipe: true },
+      {
+        calendars: { "calendar.anna": [ev("Arzt", "10:00", "11:00")] },
+        writable: ["calendar.anna"],
+      },
+    );
+    const el = m.el as unknown as Card;
+    swipe(m.root.querySelector(".event.draggable") as Element, 300, 200, 100, 200);
+    expect(el._day).toBe(4);
+  });
+});
+
+describe("rolling week (first_day: today)", () => {
+  const persons = [{ name: "Anna", calendar: "calendar.anna" }];
+  const calendars = {
+    "calendar.anna": [
+      ev("Büro", "09:00", "17:00"),
+      {
+        uid: "mo",
+        summary: "Zahnarzt",
+        start: { dateTime: "2026-09-14T10:00:00" },
+        end: { dateTime: "2026-09-14T11:00:00" },
+      },
+    ],
+  };
+  const name = (n: Element) => (n.textContent ?? "").replace(/\s+/g, " ").trim();
+
+  it("starts the week view today and reaches into next week", async () => {
+    const { all, text, apiPaths } = await mount(
+      { persons, view: "week", views: ["week"], first_day: "today" },
+      { calendars },
+    );
+    expect(name(all(".wday")[0])).toMatch(/^Freitag, 11\. September/);
+    expect(name(all(".wday")[6])).toMatch(/^Donnerstag, 17\. September/);
+    // Monday the 14th belongs to next calendar week, but is in the rolling one
+    expect(text()).toContain("Zahnarzt");
+    const q = new URLSearchParams(apiPaths[0].split("?")[1]);
+    expect(new Date(q.get("start") as string).getDate()).toBe(11);
+    expect(new Date(q.get("end") as string).getDate()).toBe(18);
+  });
+
+  it("puts today first in the day tabs", async () => {
+    const { texts } = await mount(
+      { persons, view: "day", views: ["day"], first_day: "today", start_hour: 7, end_hour: 20 },
+      { calendars },
+    );
+    expect(texts(".tabs [role=tab]")).toEqual(["Fr", "Sa", "So", "Mo", "Di", "Mi", "Do"]);
+    expect(texts(".tabs [aria-selected=true]")).toEqual(["Fr"]);
+  });
+
+  it("keeps the month grid on Monday columns", async () => {
+    const { texts } = await mount(
+      { persons, view: "month", views: ["month"], first_day: "today" },
+      { calendars },
+    );
+    expect(texts(".mhcell")[0]).toBe("Mo");
+  });
+});
+
+describe("countdowns (now view)", () => {
+  const at = (summary: string, day: string, extra: Record<string, unknown> = {}) => ({
+    uid: `${summary}-${day}`,
+    summary,
+    start: { date: day },
+    end: { date: day },
+    ...extra,
+  });
+  const calendars = {
+    "calendar.anna": [
+      ev("Büro", "09:00", "17:00"),
+      at("Urlaub Ostsee", "2026-09-23"),
+      at("Urlaub Harz", "2026-09-01"), // already over
+      at("Zahnarzt", "2026-09-15"), // no keyword
+      at("Urlaub geheim", "2026-09-20"), // hidden by hide_patterns
+    ],
+    "calendar.familie": [at("Geburtstag Oma", "2026-09-12")],
+  };
+  const base = {
+    persons: [{ name: "Anna", calendar: "calendar.anna" }],
+    family_calendars: ["calendar.familie"],
+    countdowns: ["urlaub", "geburtstag"],
+    hide_patterns: ["geheim"],
+  };
+
+  it("shows coming matching events with the days left, soonest first", async () => {
+    const { texts } = await mount({ ...base, view: "now", views: ["now"] }, { calendars });
+    expect(texts(".cdchip")).toEqual(["🎂Geburtstag Oma morgen", "🏖️Urlaub Ostsee in 12 Tagen"]);
+  });
+
+  it("looks ahead countdown_days with a request of its own", async () => {
+    const { apiPaths } = await mount(
+      { ...base, view: "now", views: ["now"], countdown_days: 30 },
+      { calendars },
+    );
+    const long = apiPaths
+      .map((p) => new URLSearchParams(p.split("?")[1]))
+      .filter((q) => new Date(q.get("end") as string).getMonth() === 9); // reaches October
+    expect(long.length).toBeGreaterThan(0);
+    expect(new Date(long[0].get("end") as string).getDate()).toBe(12); // 11 Sep + 31 days
+  });
+
+  it("costs nothing outside the now view or without keywords", async () => {
+    const day = await mount(
+      { ...base, view: "day", views: ["day", "now"], start_hour: 7, end_hour: 20 },
+      { calendars },
+    );
+    expect(day.root.querySelector(".cdchip")).toBeNull();
+    const plain = await mount(
+      { persons: base.persons, view: "now", views: ["now"] },
+      { calendars },
+    );
+    expect(plain.root.querySelector(".cdband")).toBeNull();
+    expect(day.apiPaths.concat(plain.apiPaths).every((p) => !p.includes("2026-10"))).toBe(true);
+  });
+});
+
+describe("night screen", () => {
+  const persons = [{ name: "Anna", calendar: "calendar.anna" }];
+  const calendars = {
+    "calendar.anna": [
+      {
+        uid: "fr",
+        summary: "Frühdienst",
+        start: { dateTime: "2026-09-14T06:00:00" }, // Monday: next week
+        end: { dateTime: "2026-09-14T14:00:00" },
+      },
+    ],
+  };
+  const base = {
+    persons,
+    view: "day" as const,
+    views: ["day" as const, "week" as const],
+    start_hour: 7,
+    end_hour: 20,
+    night_start: "21:00",
+    night_end: "06:30",
+  };
+
+  it("shows the calm night screen in the night hours, whatever the view", async () => {
+    // Sunday night in the day view: the week ends at midnight, the night screen
+    // still has to find Monday's early shift
+    const { el, root, text, apiPaths } = await mount(base, {
+      calendars,
+      now: "2026-09-13T23:00:00",
+    });
+    // asked from today on, past the end of the week
+    const q = new URLSearchParams(apiPaths[apiPaths.length - 1].split("?")[1]);
+    expect(new Date(q.get("start") as string).getDate()).toBe(13);
+    expect(new Date(q.get("end") as string).getDate()).toBe(21);
+    expect(el.hasAttribute("night")).toBe(true);
+    expect(root.querySelector(".nightcard .now")).not.toBeNull();
+    expect(root.querySelector(".switch")).toBeNull();
+    // what comes first tomorrow
+    expect(text()).toContain("Frühdienst");
+    expect(text()).toContain("Morgen 06:00");
+  });
+
+  it("also after midnight, and not during the day", async () => {
+    const late = await mount(base, { calendars, now: "2026-09-12T02:00:00" });
+    expect(late.el.hasAttribute("night")).toBe(true);
+    const day = await mount(base, { calendars, now: "2026-09-11T10:20:00" });
+    expect(day.el.hasAttribute("night")).toBe(false);
+    expect(day.root.querySelector(".switch")).not.toBeNull();
+  });
+
+  it("wakes on a touch and falls asleep again after a while", async () => {
+    const { el, root } = await mount(base, { calendars, now: "2026-09-11T23:00:00" });
+    const card = el as unknown as { updateComplete: Promise<unknown> };
+    el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await card.updateComplete;
+    expect(el.hasAttribute("night")).toBe(false);
+    expect(root.querySelector(".board")).not.toBeNull();
+    await vi.advanceTimersByTimeAsync(3 * 60000); // the minute tick re-checks
+    await card.updateComplete;
+    expect(el.hasAttribute("night")).toBe(true);
+  });
+
+  it("wakes while a motion sensor reports movement, and sleeps again after it stops", async () => {
+    const { el } = await mount(
+      { ...base, night_wake_entity: "binary_sensor.flur" },
+      { calendars, now: "2026-09-11T23:00:00", states: { "binary_sensor.flur": "off" } },
+    );
+    const card = el as unknown as {
+      hass: { states: Record<string, { state: string }> };
+      updateComplete: Promise<unknown>;
+    };
+    const motion = async (state: string) => {
+      card.hass = {
+        ...card.hass,
+        states: { ...card.hass.states, "binary_sensor.flur": { state } },
+      };
+      await card.updateComplete;
+    };
+    expect(el.hasAttribute("night")).toBe(true);
+    await motion("on");
+    expect(el.hasAttribute("night")).toBe(false);
+    await vi.advanceTimersByTimeAsync(5 * 60000); // still moving: stays awake
+    await card.updateComplete;
+    expect(el.hasAttribute("night")).toBe(false);
+    await motion("off");
+    expect(el.hasAttribute("night")).toBe(false); // a short while longer, like a touch
+    await vi.advanceTimersByTimeAsync(3 * 60000);
+    await card.updateComplete;
+    expect(el.hasAttribute("night")).toBe(true);
+  });
+
+  it("ignores motion during the day", async () => {
+    const { el, root } = await mount(
+      { ...base, night_wake_entity: ["binary_sensor.flur"] },
+      { calendars, now: "2026-09-11T10:20:00", states: { "binary_sensor.flur": "on" } },
+    );
+    expect(el.hasAttribute("night")).toBe(false);
+    expect(root.querySelector(".switch")).not.toBeNull();
+  });
+
+  it("stays off without both times", async () => {
+    const { el } = await mount(
+      { ...base, night_end: undefined },
+      { calendars, now: "2026-09-11T23:00:00" },
+    );
+    expect(el.hasAttribute("night")).toBe(false);
+  });
+});
+
+describe("live updates and instant display", () => {
+  const persons = [{ name: "Anna", calendar: "calendar.anna" }];
+  const calendars = { "calendar.anna": [ev("Büro", "09:00", "17:00")] };
+  const base = { persons, view: "agenda" as const, views: ["agenda" as const] };
+
+  it("subscribes to the shown range and takes pushed changes at once", async () => {
+    const { subs, text, el } = await mount(base, { calendars, live: "new" });
+    expect(subs).toHaveLength(1);
+    expect(subs[0].msg).toMatchObject({
+      type: "calendar/event/subscribe",
+      entity_id: "calendar.anna",
+    });
+    expect(new Date(subs[0].msg.start as string).getDate()).toBe(7); // Monday of the week
+    // someone adds an appointment on the phone; HA pushes the new list
+    subs[0].push([
+      {
+        summary: "Büro",
+        start: "2026-09-11T09:00:00+02:00",
+        end: "2026-09-11T17:00:00+02:00",
+        all_day: false,
+      },
+      {
+        summary: "Zahnarzt",
+        start: "2026-09-11T15:00:00+02:00",
+        end: "2026-09-11T16:00:00+02:00",
+        all_day: false,
+      },
+    ]);
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(text()).toContain("Zahnarzt");
+    expect(text()).toContain("15:00");
+  });
+
+  it("keeps the board when a push says the calendar could not be read", async () => {
+    const { subs, text, el } = await mount(base, { calendars, live: "new" });
+    subs[0].push(null);
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(text()).toContain("Büro");
+  });
+
+  it("works as before on a Home Assistant without live updates", async () => {
+    const { text, subs } = await mount(base, { calendars, live: "old" });
+    expect(subs).toHaveLength(0);
+    expect(text()).toContain("Büro");
+  });
+
+  it("unsubscribes when the board leaves the screen, and when the range changes", async () => {
+    const { subs, el, root } = await mount(base, { calendars, live: "new" });
+    (root.querySelectorAll("button.nav")[1] as HTMLButtonElement).click(); // next week
+    for (let i = 0; i < 4; i++) {
+      await vi.advanceTimersByTimeAsync(0);
+      await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    }
+    expect(subs[0].unsubscribed).toBe(true);
+    expect(subs).toHaveLength(2);
+    el.remove();
+    expect(subs[1].unsubscribed).toBe(true);
+  });
+
+  it("shows the last known events at once while the fresh answer is on its way", async () => {
+    await mount(base, { calendars }); // a first visit fills the cache
+    mounted.splice(0).forEach((n) => n.remove());
+    const { text } = await mount(base, { calendars, slowApi: true });
+    expect(text()).toContain("Büro");
+  });
+
+  it("keeps a cache per board, so two boards on one dashboard both start instantly", async () => {
+    const ben = { ...base, persons: [{ name: "Ben", calendar: "calendar.ben" }] };
+    const both = { ...calendars, "calendar.ben": [ev("Training", "18:00", "19:30")] };
+    await mount(base, { calendars: both });
+    await mount(ben, { calendars: both });
+    mounted.splice(0).forEach((n) => n.remove());
+    const { text } = await mount(base, { calendars: both, slowApi: true });
+    expect(text()).toContain("Büro");
+  });
+
+  it("does not show cached events of another board", async () => {
+    await mount(base, { calendars });
+    mounted.splice(0).forEach((n) => n.remove());
+    const other = { ...base, persons: [{ name: "Ben", calendar: "calendar.ben" }] };
+    const { text } = await mount(other, { calendars: { "calendar.ben": [] }, slowApi: true });
+    expect(text()).not.toContain("Büro");
+  });
+});
+
+describe("still at home (late_warning)", () => {
+  const persons = [
+    { name: "Anna", person: "person.anna", calendar: "calendar.anna" },
+    { name: "Ben", person: "person.ben", calendar: "calendar.ben" },
+  ];
+  const calendars = {
+    "calendar.anna": [ev("Zahnarzt", "10:30", "11:00", { location: "Praxis Dr. Meier" })],
+    "calendar.ben": [ev("Training", "10:35", "12:00", { location: "Sporthalle" })],
+  };
+  const states = { "person.anna": "home", "person.ben": "not_home" };
+  const base = {
+    persons,
+    late_warning: 20,
+    start_hour: 7,
+    end_hour: 20,
+  };
+
+  it("warns in the day view for whoever is still home", async () => {
+    const { texts } = await mount({ ...base, view: "day", views: ["day"] }, { calendars, states });
+    expect(texts(".alert.a-late")).toEqual(["🚪 Anna noch zuhause – Zahnarzt 10:30"]);
+  });
+
+  it("puts the warning into the person's row in the now view", async () => {
+    const { texts } = await mount({ ...base, view: "now", views: ["now"] }, { calendars, states });
+    expect(texts(".nrow .nlate")).toEqual(["🚪 Zahnarzt 10:30 · noch zuhause"]);
+  });
+
+  it("shows nothing without the option, or on another day", async () => {
+    const off = await mount(
+      { ...base, late_warning: 0, view: "day", views: ["day"] },
+      { calendars, states },
+    );
+    expect(off.root.querySelector(".a-late")).toBeNull();
+    const { el, root } = await mount(
+      { ...base, view: "day", views: ["day"] },
+      { calendars, states },
+    );
+    const card = el as unknown as { _day: number; updateComplete: Promise<unknown> };
+    card._day = 5; // Saturday
+    await card.updateComplete;
+    expect(root.querySelector(".a-late")).toBeNull();
+  });
+});
+
+describe("rides (driver)", () => {
+  const persons = [
+    { name: "Anna", calendar: "calendar.anna", driver: true },
+    { name: "Ben", calendar: "calendar.ben", driver: true },
+    { name: "Mia", calendar: "calendar.mia" },
+  ];
+  const calendars = {
+    "calendar.anna": [ev("Büro", "09:00", "17:00")],
+    "calendar.ben": [ev("Homeoffice", "08:00", "12:00")],
+    "calendar.mia": [
+      ev("Anna: vom Sport abholen", "16:00", "16:30"),
+      ev("Zum Training bringen", "17:00", "17:30"),
+      ev("Ben: Musikschule abholen", "18:00", "18:30"),
+    ],
+  };
+  const base = { persons, start_hour: 7, end_hour: 20 };
+
+  it("tags rides with their driver, and warns about missing or busy drivers", async () => {
+    const { texts, root } = await mount({ ...base, view: "day", views: ["day"] }, { calendars });
+    expect(texts(".eride")).toEqual(["🚗 Anna", "🚗 ?", "🚗 Ben"]);
+    expect(root.querySelector(".eride.none")?.textContent).toBe("🚗 ?");
+    expect(texts(".alert.a-ride")).toEqual([
+      "🚗 Anna ist belegt – Anna: vom Sport abholen 16:00",
+      "🚗 Mia Zum Training bringen – kein Fahrer 17:00",
+    ]);
+    const label = root.querySelector(".event[aria-label*='Training']")?.getAttribute("aria-label");
+    expect(label).toContain("kein Fahrer");
+  });
+
+  it("shows the driver in the agenda", async () => {
+    const { texts } = await mount({ ...base, view: "agenda", views: ["agenda"] }, { calendars });
+    expect(texts(".agenda-meta .eride")).toEqual(["🚗 Anna", "🚗 ?", "🚗 Ben"]);
+  });
+
+  it("does nothing while nobody is marked as a driver", async () => {
+    const plain = persons.map(({ driver: _d, ...p }) => p);
+    const { root } = await mount(
+      { ...base, persons: plain, view: "day", views: ["day"] },
+      { calendars },
+    );
+    expect(root.querySelector(".eride")).toBeNull();
+    expect(root.querySelector(".a-ride")).toBeNull();
+  });
+});
+
+describe("private events", () => {
+  const persons = [
+    { name: "Anna", calendar: "calendar.anna" },
+    { name: "Ben", calendar: "calendar.ben" },
+  ];
+  const calendars = {
+    "calendar.anna": [
+      ev("Therapie", "10:00", "11:00", { location: "Praxis Dr. Meier", description: "#privat" }),
+      ev("Büro", "12:00", "17:00"),
+    ],
+    "calendar.ben": [ev("Bewerbungsgespräch", "14:00", "15:00", { location: "Firma X" })],
+  };
+  const base = {
+    persons,
+    private_patterns: ["#privat"],
+    calendars: { "calendar.ben": { private: true } },
+    start_hour: 7,
+    end_hour: 20,
+  };
+
+  it("shows only “Private” and the time, never title or place", async () => {
+    const { text, texts } = await mount(
+      { ...base, view: "agenda", views: ["agenda"] },
+      { calendars },
+    );
+    expect(text()).not.toContain("Therapie");
+    expect(text()).not.toContain("Praxis");
+    expect(text()).not.toContain("Bewerbung");
+    expect(text()).not.toContain("Firma X");
+    expect(texts(".agenda-title")).toEqual(["🔒 Privat", "Büro", "🔒 Privat"]);
+    expect(text()).toContain("10:00–11:00");
+  });
+
+  it("preserves the title override for month-table markers", async () => {
+    const { root } = await mount(
+      {
+        persons: [],
+        view: "month_table",
+        month_table_marker_calendars: ["calendar.family"],
+        month_table_marker_mode: "text",
+        calendars: { "calendar.family": { title_field: "description" } },
+      },
+      {
+        calendars: {
+          "calendar.family": [ev("Original", "10:00", "11:00", { description: "Display title" })],
+        },
+      },
+    );
+    expect(root.querySelector(".wday.has-markers")?.getAttribute("title")).toBe("Display title");
+    expect(root.querySelector(".date-markers")?.textContent).toContain("Display title");
+  });
+
+  it("masks private month-table markers in the row and tooltip", async () => {
+    const { root, text } = await mount(
+      {
+        persons: [],
+        view: "month_table",
+        month_table_marker_calendars: ["calendar.family"],
+        month_table_marker_mode: "text",
+        private_patterns: ["#privat"],
+      },
+      {
+        calendars: {
+          "calendar.family": [
+            ev("Vertraulicher Termin", "10:00", "11:00", { description: "#privat" }),
+          ],
+        },
+      },
+    );
+    expect(text()).not.toContain("Vertraulicher Termin");
+    expect(root.querySelector(".wday.has-markers")?.getAttribute("title")).toBe("🔒 Privat");
+    expect(root.querySelector(".date-markers")?.textContent).toContain("🔒 Privat");
+  });
+
+  it("opens no dialog and cannot be dragged", async () => {
+    const { root, el } = await mount(
+      { ...base, view: "day", views: ["day"] },
+      { calendars, writable: ["calendar.anna"] },
+    );
+    const priv = root.querySelector<HTMLElement>(".event[aria-label^='🔒']")!;
+    expect(priv.classList.contains("draggable")).toBe(false);
+    priv.click();
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(root.querySelector(".dialog")).toBeNull();
+    root.querySelector<HTMLElement>("[aria-label*='Büro']")!.click();
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(root.querySelector(".dialog")).not.toBeNull();
+  });
+
+  it("keeps the details out of the browser cache, and stays private when started from it", async () => {
+    await mount({ ...base, view: "agenda", views: ["agenda"] }, { calendars });
+    const stored = Object.keys(localStorage)
+      .map((k) => localStorage.getItem(k))
+      .join(" ");
+    expect(stored).toContain("Büro");
+    expect(stored).not.toContain("Therapie");
+    expect(stored).not.toContain("Praxis");
+    expect(stored).not.toContain("Bewerbung");
+    mounted.splice(0).forEach((n) => n.remove());
+    const { texts } = await mount(
+      { ...base, view: "agenda", views: ["agenda"] },
+      { calendars, slowApi: true },
+    );
+    expect(texts(".agenda-title")).toEqual(["🔒 Privat", "Büro", "🔒 Privat"]);
+  });
+});
+
+describe("photo screensaver", () => {
+  const persons = [{ name: "Anna", calendar: "calendar.anna" }];
+  const calendars = { "calendar.anna": [ev("Zahnarzt", "10:30", "11:00")] };
+  const folder = "media-source://media_source/local/fotos";
+  const media = [
+    { media_content_id: `${folder}/a.jpg`, media_class: "image" },
+    { media_content_id: `${folder}/b.jpg`, media_class: "image" },
+    { media_content_id: `${folder}/clip.mp4`, media_class: "video" },
+    { media_content_id: `${folder}/urlaub`, media_class: "directory" },
+  ];
+  const base = {
+    persons,
+    view: "day" as const,
+    views: ["day" as const],
+    screensaver_media: folder,
+    screensaver_after: 5,
+    screensaver_interval: 10,
+    start_hour: 7,
+    end_hour: 20,
+  };
+  type Card = { updateComplete: Promise<unknown> };
+  const settle = async (el: HTMLElement) => {
+    for (let i = 0; i < 4; i++) {
+      await vi.advanceTimersByTimeAsync(0);
+      await (el as unknown as Card).updateComplete;
+    }
+  };
+
+  it("starts after the idle time, shows photos with a clock, and moves on", async () => {
+    const { el, root, wsCalls } = await mount(base, { calendars, media });
+    expect(wsCalls.find((m) => m.type === "media_source/browse_media")).toMatchObject({
+      media_content_id: folder,
+    });
+    expect(root.querySelector(".saver")).toBeNull();
+    await vi.advanceTimersByTimeAsync(4 * 60000);
+    await settle(el);
+    expect(root.querySelector(".saver")).toBeNull(); // not yet
+    await vi.advanceTimersByTimeAsync(60000);
+    await settle(el);
+    expect(root.querySelector(".saver")).not.toBeNull();
+    expect(root.querySelector(".board")).toBeNull();
+    expect(root.querySelector(".savertime")?.textContent).toBe("10:25");
+    const first = root.querySelector<HTMLImageElement>(".saverimg")?.getAttribute("src");
+    expect(first).toMatch(/^\/media\/local\/[ab]\.jpg\?authSig=x$/);
+    await vi.advanceTimersByTimeAsync(10000);
+    await settle(el);
+    const second = root.querySelector<HTMLImageElement>(".saverimg")?.getAttribute("src");
+    expect(second).not.toBe(first);
+    // only photos are shown: two photos, so the third turn is the first again
+    const resolved = wsCalls
+      .filter((m) => m.type === "media_source/resolve_media")
+      .map((m) => String(m.media_content_id).split("/").pop());
+    expect(resolved.every((id) => id === "a.jpg" || id === "b.jpg")).toBe(true);
+  });
+
+  it("a tap brings the board back without opening what lies below", async () => {
+    const { el, root } = await mount(base, { calendars, media });
+    await vi.advanceTimersByTimeAsync(5 * 60000);
+    await settle(el);
+    const saver = root.querySelector<HTMLElement>(".saver")!;
+    saver.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, composed: true }));
+    await settle(el);
+    expect(root.querySelector(".saver")).toBeNull();
+    // the click of that same tap lands on the board and must be swallowed
+    root.querySelector<HTMLElement>("[aria-label*='Zahnarzt']")!.click();
+    await settle(el);
+    expect(root.querySelector(".dialog")).toBeNull();
+    // the next tap works as usual
+    root.querySelector<HTMLElement>("[aria-label*='Zahnarzt']")!.click();
+    await settle(el);
+    expect(root.querySelector(".dialog")).not.toBeNull();
+  });
+
+  it("can be ended with the keyboard", async () => {
+    const { el, root } = await mount(base, { calendars, media });
+    await vi.advanceTimersByTimeAsync(5 * 60000);
+    await settle(el);
+    root
+      .querySelector<HTMLElement>(".saver")!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    await settle(el);
+    expect(root.querySelector(".saver")).toBeNull();
+  });
+
+  it("stays away without photos, and gives way to the night screen", async () => {
+    const empty = await mount(base, { calendars, media: [] });
+    await vi.advanceTimersByTimeAsync(10 * 60000);
+    await settle(empty.el);
+    expect(empty.root.querySelector(".saver")).toBeNull();
+    mounted.splice(0).forEach((n) => n.remove());
+    const night = await mount(
+      { ...base, night_start: "21:00", night_end: "06:30" },
+      { calendars, media, now: "2026-09-11T23:00:00" },
+    );
+    await vi.advanceTimersByTimeAsync(10 * 60000);
+    await settle(night.el);
+    expect(night.root.querySelector(".saver")).toBeNull();
+    expect(night.el.hasAttribute("night")).toBe(true);
+    // and no photos are fetched behind the night screen
+    expect(night.wsCalls.some((m) => m.type === "media_source/resolve_media")).toBe(false);
+  });
+});
+
+describe("birthdays with age", () => {
+  const persons = [{ name: "Anna", calendar: "calendar.anna" }];
+  const calendars = {
+    "calendar.anna": [
+      {
+        uid: "oma",
+        summary: "Geburtstag Oma (1946)",
+        start: { date: "2026-09-11" },
+        end: { date: "2026-09-12" },
+      },
+      ev("Klassentreffen (1996)", "18:00", "22:00"),
+    ],
+  };
+  const base = { persons, start_hour: 7, end_hour: 20 };
+
+  it("shows the age in the agenda and the now view", async () => {
+    const ag = await mount(
+      { ...base, birthday_age: true, view: "agenda", views: ["agenda"] },
+      { calendars },
+    );
+    expect(ag.texts(".agenda-title")).toEqual([
+      "Geburtstag Oma (wird 80)",
+      "Klassentreffen (1996)",
+    ]);
+    const now = await mount(
+      { ...base, birthday_age: true, view: "now", views: ["now"] },
+      { calendars },
+    );
+    expect(now.texts(".nallday")).toEqual(["Geburtstag Oma (wird 80)"]);
+  });
+
+  it("keeps the real title for editing", async () => {
+    const { root, el } = await mount(
+      { ...base, birthday_age: true, view: "agenda", views: ["agenda"] },
+      { calendars, writable: ["calendar.anna"] },
+    );
+    root.querySelector<HTMLElement>(".agenda-row")!.click();
+    await (el as unknown as { updateComplete: Promise<unknown> }).updateComplete;
+    expect(root.querySelector<HTMLInputElement>(".dialog input[type=text]")?.value).toBe(
+      "Geburtstag Oma (1946)",
+    );
+  });
+
+  it("changes nothing while the option is off", async () => {
+    const { texts } = await mount({ ...base, view: "agenda", views: ["agenda"] }, { calendars });
+    expect(texts(".agenda-title")[0]).toBe("Geburtstag Oma (1946)");
   });
 });

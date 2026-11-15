@@ -51,8 +51,9 @@ Durchlauf eine Hochkantvorschau der kompakten Einstellungen.
 10-Tage-Vorhersage ab heute).
 `?nofamily=1` schaltet die Familien-Kalender (Müll, Ferien, Elternabend) ab.
 
-`<ha-icon>` wird durch einen grauen Kreis in Icon-Größe ersetzt, damit Icons
-im Layout so viel Platz einnehmen wie in Home Assistant.
+`<ha-icon>` wird nachgebaut: Es zeichnet die echten Material Design Icons
+(`@mdi/js`, wie in Home Assistant) in Icon-Größe, damit Layout-Prüfungen und
+README-Bilder zeigen, was Nutzer sehen. Unbekannte Namen werden ein grauer Punkt.
 
 Die Daten sind erfunden und die Namen generisch — die Screenshots im README
 entstehen hier, es sollen keine echten Familiennamen hineingeraten.
@@ -64,7 +65,7 @@ Reihenfolgen und prüfen Rendering, Kartenwähler, Editor, neue Konfigurationen
 und unabhängige Navigation. Das Original-Bundle muss lokal vorliegen:
 
 ```bash
-git show 78f07f9a14be8d4e97664ec01dad7e5d899b7f84:dist/ha-family-board-card.js > /tmp/ha-family-board-original.js
+git show 9a77a3716f6717039280af430afd32ff3a9b0387:dist/ha-family-board-card.js > /tmp/ha-family-board-original.js
 UPSTREAM_BUNDLE_PATH=/tmp/ha-family-board-original.js CHROMIUM_PATH=/pfad/zu/chromium npm run check:browser
 ```
 
