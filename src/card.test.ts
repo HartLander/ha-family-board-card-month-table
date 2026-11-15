@@ -958,6 +958,20 @@ describe("family calendars", () => {
   });
 });
 
+describe("fixed card height", () => {
+  it("uses an exact pixel value and clears it when disabled or invalid", async () => {
+    const { el } = await mount({ persons: [], card_height: 720.5 });
+    expect(el.hasAttribute("fixed-height")).toBe(true);
+    expect(el.style.getPropertyValue("--fb-card-height")).toBe("720.5px");
+
+    for (const card_height of [0, -20, NaN, Infinity, undefined]) {
+      el.setConfig({ type: "custom:family-board-card-month-table", persons: [], card_height });
+      expect(el.hasAttribute("fixed-height")).toBe(false);
+      expect(el.style.getPropertyValue("--fb-card-height")).toBe("");
+    }
+  });
+});
+
 describe("month table", () => {
   const persons = [
     { name: "Mama", calendar: "calendar.mama" },

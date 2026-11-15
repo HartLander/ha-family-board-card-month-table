@@ -85,6 +85,7 @@ const EN: Dict = {
   l_hour_height: "Height per hour",
   l_hour_width: "Timeline: width per hour",
   l_fit_height: "Auto-fit: squeeze the day so it fits without scrolling",
+  l_card_height: "Fixed card height",
   l_full_height: "Full height: stretch to the bottom of the screen",
   l_month_table_full_height: "Show the entire month in the month table",
   l_month_table_inline_date: "Month table: weekday and date on one line",
@@ -172,6 +173,7 @@ const EN: Dict = {
   h_auto_return: "Kiosk: jumps back to “today” after X minutes without a touch",
   h_background_hours: "0 = off. Long all-day-ish events (after-school care …) as a subtle band",
   h_fit_height: "Compresses the day until everything is visible without scrolling",
+  h_card_height: "Includes the header and navigation. Leave empty or enter 0 for automatic height.",
   h_full_height: "For panel view / wall tablet",
   h_month_table_full_height:
     "Expands the month table to show all rows without an internal vertical scrollbar. The dashboard may still scroll on smaller screens.",
@@ -351,6 +353,7 @@ const DE: Dict = {
   l_hour_height: "Höhe pro Stunde",
   l_hour_width: "Zeitstrahl: Breite pro Stunde",
   l_fit_height: "Auto-Fit: Tag ohne Scrollen einpassen",
+  l_card_height: "Feste Kartenhöhe",
   l_full_height: "Volle Höhe: bis zum unteren Bildschirmrand",
   l_month_table_full_height: "In Monatsübersicht ganzen Monat anzeigen",
   l_month_table_inline_date: "Monatstabelle: Wochentag und Datum in einer Zeile",
@@ -440,6 +443,7 @@ const DE: Dict = {
   h_auto_return: "Kiosk: springt nach X Minuten ohne Berührung zurück zu „heute“",
   h_background_hours: "0 = aus. Lange Dauertermine (OGS, Betreuung …) als dezentes Band",
   h_fit_height: "Staucht den Tag, bis alles ohne Scrollen sichtbar ist",
+  h_card_height: "Einschließlich Titel und Navigation. Leer oder 0 für automatische Höhe.",
   h_full_height: "Für Panel-Ansicht / Wandtablet",
   h_month_table_full_height:
     "Zeigt alle Zeilen der Monatstabelle ohne internen vertikalen Scrollbalken. Auf kleineren Bildschirmen kann das Dashboard weiterhin scrollen.",

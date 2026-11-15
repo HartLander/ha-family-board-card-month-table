@@ -185,6 +185,10 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
     }
     layout.push(
       { name: "slim_header", selector: { boolean: {} } },
+      {
+        name: "card_height",
+        selector: { number: { min: 0, step: "any", mode: "box", unit_of_measurement: "px" } },
+      },
       { name: "full_height", selector: { boolean: {} } },
       ...["header_position", "navigation_position"].map((name) => ({
         name,
@@ -528,12 +532,14 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
     }
     if (typeof next.time_grid === "string") next.time_grid = Number(next.time_grid);
     // keep persons + calendars untouched by the settings form
-    this._emit({
+    const config: FamilyBoardConfig = {
       ...this._config,
       ...next,
       persons: this._persons,
       ...(this._config.calendars ? { calendars: this._config.calendars } : {}),
-    });
+    };
+    if (config.card_height == null || config.card_height === 0) delete config.card_height;
+    this._emit(config);
   }
 
   /* ---- presets --------------------------------------------------- */
@@ -556,6 +562,7 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       clear(["full_height", "fit_height", "auto_return"]);
     } else {
       clear([
+        "card_height",
         "full_height",
         "fit_height",
         "month_table_full_height",

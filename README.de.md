@@ -2,7 +2,7 @@
 
 Dies ist [HartLanders Fork](https://github.com/HartLander/ha-family-board-card-month-table) der [Family Board Card von renespeaker](https://github.com/renespeaker/ha-family-board-card), basierend auf **v0.33.0**. Wir wollten eine andere Monatsübersicht: alle Tage eines Kalendermonats als Zeilen und eine Spalte pro Person. Dieser Fork ergänzt dafür `month_table` und registriert eine eigene Karte, `custom:family-board-card-month-table`. Beide Karten können gleichzeitig geladen und mit derselben Kalenderkonfiguration verglichen werden.
 
-**Fork-Version: `0.31.2-month-table.5`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork-Version: `0.33.0-month-table.1`.** Die ursprüngliche Karte und ihre bestehenden Funktionen stammen von renespeaker und den Upstream-Mitwirkenden. Die ursprüngliche [MIT-Lizenz samt Copyright-Hinweis](LICENSE) bleibt erhalten. Bitte meldet Fehler der Fork-Erweiterung [in diesem Repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Monatstabelle aktivieren
 
@@ -22,6 +22,8 @@ Die vorhandenen `persons:`-Einträge bleiben erhalten. Bei einer bestehenden `vi
 Personenüberschriften und Datumsspalte bleiben beim Scrollen sichtbar. Die Tabelle bietet Monatsnavigation, Termin-Dialoge und das Anlegen von Terminen bei beschreibbaren Kalendern. `show_weekends: false` blendet Wochenenden aus; `hide_empty_persons: true` blendet Personen ohne Termine im gewählten Monat aus (sind alle leer, bleiben alle Spalten sichtbar). Ein Klick auf ein Datum öffnet die Tagesansicht, sofern aktiviert. [Ausführliche Anleitung](INSTALLATION.de.md).
 
 Für den ganzen Monat ohne internen vertikalen Scrollbalken aktiviere **Layout & Größe → In Monatsübersicht ganzen Monat anzeigen** oder setze `month_table_full_height: true`. Die Karte wächst auf die Höhe aller Zeilen; auf kleineren Bildschirmen kann das Dashboard selbst weiterhin scrollen. Horizontales Scrollen bleibt bei vielen Personen möglich. Die Option ist standardmäßig `false`; damit bleibt die bisherige Scrollansicht mit fixierten Überschriften erhalten.
+
+Mit **Layout & Größe → Feste Kartenhöhe** (zum Beispiel `card_height: 720`) legst du die exakte Höhe der ganzen Karte einschließlich Titel und Navigation fest. Der Kalender scrollt bei Bedarf innerhalb der Karte. Die Zeilen der Monatstabelle behalten ihre eingestellte Mindesthöhe. Freier Platz bleibt darunter. Die feste Höhe hat Vorrang vor `full_height`, `month_table_fill_height` und `month_table_full_height`. Leer oder 0 stellt die automatische Höhe wieder her.
 
 Unter **Layout & Größe** gibt es außerdem **Wochentag und Datum in einer Zeile**, einen kompakten Personenkopf (Avatar neben dem Namen) und Regler für Schriftgröße, Mindesthöhe der Zeilen, vertikalen Innenabstand und Abstand zwischen Terminen. Diese Einstellungen gelten nur für `month_table`. Bei vielen Terminen wachsen Zeilen weiterhin mit; bei großer Schrift wird die Datumsspalte breiter. Ein kompakter Startpunkt für das Wanddisplay:
 
@@ -175,7 +177,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 - **Kompakt-Modus** – ein Schalter (`compact`) für kleinere Schriften und engere Abstände, statt drei Regler einzeln zu justieren.
 - **Personen beim Start ausgeblendet** – `hidden: true` pro Person; die Spalte startet eingeklappt und ein Klick auf den Kopf holt sie zurück.
 
-> Status: **v0.31.2-month-table.5 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
+> Status: **v0.33.0-month-table.1 – vollständige Familien-Tagesplanung: 7 Ansichten, Schreibzugriff, Auto-Layout (Trim/Fit/Full-Height), Hintergrund-Bänder, Badges, Kiosk-Modus, mobil optimiert, Karte und Editor vollständig lokalisiert.**
 
 ## Installation
 
@@ -184,7 +186,7 @@ Ein Familienkalender bzw. „Wer ist wann wo"-Board für [Home Assistant](https:
 Verwende `dist/ha-family-board-card-month-table.js` aus diesem Fork oder baue die Datei mit `npm ci && npm run build`. Kopiere sie nach `/config/www/ha-family-board-card-month-table.js` und füge diese Dashboard-Ressource hinzu:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.5
+url: /local/ha-family-board-card-month-table.js?v=0.33.0-month-table.1
 type: module
 ```
 
@@ -279,6 +281,7 @@ persons:
 | `month_table_row_height` | number | `48` | Mindesthöhe des Zellinhalts, 16–96 px, zuzüglich Innenabstand; volle Zeilen wachsen mit |
 | `month_table_row_padding` | number | `4` | Vertikaler Innenabstand, 0–12 px; passt auch den Abstand in Datums- und Terminblöcken an |
 | `month_table_event_gap` | number | `3` | Vertikaler Abstand zwischen Terminblöcken, 0–12 px |
+| `card_height` | number | — | Exakte Höhe der gesamten Karte in Pixeln, einschließlich Bedienelementen. Leer oder 0 stellt die automatische Höhe wieder her. |
 | `full_height`   | boolean | `false` | Board bis zum unteren Bildschirmrand strecken (Panel-/Wandtablet-Ansicht); Standard ist eine 58 %-Deckelung |
 | `trim_hours`    | boolean | `true`  | Tagesansicht: leere Randstunden automatisch abschneiden, damit der belegte Teil des Tages die volle Höhe bekommt (min. 6-h-Fenster; `start_hour`/`end_hour` bleiben die Außengrenzen) |
 | `col_min_width` | number  | `120`   | Mindestbreite (px) pro Personenspalte, darunter wird horizontal gescrollt; Spalten wachsen darüber hinaus mit der Kartenbreite |

@@ -2,7 +2,7 @@
 
 This is [HartLander's fork](https://github.com/HartLander/ha-family-board-card-month-table) of [Family Board Card by renespeaker](https://github.com/renespeaker/ha-family-board-card), based on upstream **v0.33.0**. We wanted a different monthly overview: all days of a calendar month as rows, with one column per person. This fork adds that layout as `month_table` and registers a separate card, `custom:family-board-card-month-table`. You can load both cards together and compare them using the same calendar configuration.
 
-**Fork version: `0.31.2-month-table.5`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
+**Fork version: `0.33.0-month-table.1`.** Credit for the original card and its existing features belongs to renespeaker and the upstream contributors. The original [MIT license and copyright notice](LICENSE) are preserved. Please report fork-specific issues [in this repository](https://github.com/HartLander/ha-family-board-card-month-table/issues).
 
 ## Enable the month table
 
@@ -22,6 +22,8 @@ Keep your existing `persons:` entries. If you already set `views:`, include `mon
 The table has sticky person headers and a date column, month navigation, event dialogs, and event creation on writable calendars. `show_weekends: false` hides weekends; `hide_empty_persons: true` hides people without events in the selected month (if everyone is empty, all columns remain visible). Clicking a date opens the day view when enabled. [Detailed German setup guide](INSTALLATION.de.md).
 
 To show the whole month without an internal vertical scrollbar, enable **Layout & size → Show the entire month in the month table**, or set `month_table_full_height: true`. The card grows to fit every row; on smaller screens the dashboard itself may still scroll. Horizontal scrolling remains available for many people. This option defaults to `false`, keeping the existing scrollable table and its sticky headers.
+
+Set **Layout & size → Fixed card height** (for example, `card_height: 720`) to reserve an exact height for the whole card, including title and navigation. The calendar scrolls inside that space as needed. Month-table rows keep their configured minimum height, and any unused space stays below them. A fixed height takes precedence over `full_height`, `month_table_fill_height`, and `month_table_full_height`. Clear the value or enter 0 to return to automatic height.
 
 **Layout & size** also offers a **weekday and date on one line** switch, a compact person header (avatar beside name), and sliders for month-table font size, minimum row height, vertical padding and event spacing. These controls apply only to `month_table`. Rows still grow to show all events, and the date column widens for large text. A compact starting point for a wall display:
 
@@ -175,7 +177,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 - **Compact mode** – one switch (`compact`) for smaller fonts and tighter spacing instead of adjusting three sliders.
 - **People hidden on start** – `hidden: true` per person; the column starts collapsed and a click on the header brings it back.
 
-> Status: **v0.31.2-month-table.5 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
+> Status: **v0.33.0-month-table.1 – complete family day planning: 7 views, write access, auto layout (trim/fit/full height), background bands, badges, kiosk mode, mobile optimized, fully localized card *and* editor.**
 
 ## Installation
 
@@ -184,7 +186,7 @@ A family calendar — a “who is where, when” board — for [Home Assistant](
 Use `dist/ha-family-board-card-month-table.js` from this fork, or build it with `npm ci && npm run build`. Copy it to `/config/www/ha-family-board-card-month-table.js` and add this dashboard resource:
 
 ```yaml
-url: /local/ha-family-board-card-month-table.js?v=0.31.2-month-table.5
+url: /local/ha-family-board-card-month-table.js?v=0.33.0-month-table.1
 type: module
 ```
 
@@ -279,6 +281,7 @@ persons:
 | `month_table_row_height` | number | `48` | Minimum cell content height, 16–96 px, plus padding; busy rows grow as needed |
 | `month_table_row_padding` | number | `4` | Vertical padding, 0–12 px; also adjusts date and event-chip padding |
 | `month_table_event_gap` | number | `3` | Vertical gap between event chips, 0–12 px |
+| `card_height` | number | — | Exact height of the whole card in pixels, including controls. Empty or 0 uses automatic height. |
 | `full_height` | boolean | `false` | Stretch the board to the bottom of the screen (panel / wall tablet view); the default is a 58 % cap |
 | `trim_hours` | boolean | `true` | Day view: cut away empty hours at the edges so the busy part of the day gets the full height (min. 6 h window; `start_hour`/`end_hour` stay the outer bounds) |
 | `col_min_width` | number | `120` | Minimum width (px) per person column, below that the board scrolls horizontally; above it the columns grow with the card width |
