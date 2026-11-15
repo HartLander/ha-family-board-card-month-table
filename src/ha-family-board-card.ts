@@ -6515,7 +6515,7 @@ if (!customElements.get("family-board-card-month-table")) {
 });
 
 console.info(
-  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.31.2-month-table.5 ",
+  "%c FAMILY-BOARD-CARD-MONTH-TABLE %c v0.33.0-month-table.1 ",
   "background:#5B8CFF;color:#fff;border-radius:3px 0 0 3px",
   "background:#222;color:#fff;border-radius:0 3px 3px 0",
 );
