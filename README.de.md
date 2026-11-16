@@ -51,9 +51,9 @@ Zwei unabhängige Schalter können die Tönung über alle Personenspalten der Ta
 - **Wochenendfarbe über die gesamte Tageszeile** (`month_table_weekend_full_row: true`) verwendet die vorhandenen Farbwähler für Samstag und Sonntag.
 - **Farbe des Markierungskalenders über die gesamte Tageszeile** (`month_table_marker_full_row: true`) verwendet die Farbe des ausgewählten Markierungskalenders bzw. die eigene Markierungsfarbe.
 
-Beide sind standardmäßig `false`. Sind beide an, hat die Kalenderfarbe an sich überschneidenden Tagen Vorrang. Ist nur die Wochenend-Zeilenfarbe an, kann das Feiertags-Datumsfeld seine Kalenderfarbe behalten, während die Personenzellen die Wochenendtönung erhalten. Terminblöcke behalten ihre eigenen Farben; die Zeilenhöhe bleibt gleich. Die Schalter gelten nur für `month_table`.
+Beide sind standardmäßig `false`. Kalenderflächen und -linien haben Vorrang vor der jeweils gleichen Wochenendmarkierung. Bei einem Kalenderbalken oder -unterstrich bleibt die Wochenendfläche sichtbar. Die Schalter gelten nur für `month_table`. Terminblöcke behalten ihre eigenen Farben.
 
-**Stil der Kalender-Markierung** (`month_table_marker_style`) und **Stil der Wochenend-Markierung** (`month_table_weekend_style`) bieten unabhängig voneinander `line` (Linie links), `background` (nur Hintergrund), `both` (beides) und `underline` (Linie unten). Standard bleibt `both` für Kalender und `background` für Wochenenden. Die Zeilenoption erweitert Hintergründe und untere Linien über die Personenspalten; eine linke Linie bleibt am Datumsfeld. Der Stil gilt für die Datums-/Zeilenmarkierung. Text und Terminblöcke wählst du unabhängig über `month_table_marker_mode`.
+**Stil der Kalender-Markierung** (`month_table_marker_style`) und **Stil der Wochenend-Markierung** (`month_table_weekend_style`) bieten unabhängig voneinander `line` (Linie links), `background` (nur Hintergrund), `both` (beides) und `underline` (Linie unten). Für Wochenenden ist `background` der Standard. Bei Kalendermarkierungen ist es `both` mit Text oder Terminblock und `line` mit **Nur Farbhinweis**. Ein ausdrücklich gewählter Stil hat Vorrang. Die Zeilenoption erweitert Hintergründe und untere Linien über die Personenspalten; eine linke Linie bleibt am Datumsfeld. Der Stil gilt für die Datums-/Zeilenmarkierung. Text und Terminblöcke wählst du unabhängig über `month_table_marker_mode`.
 
 Getrennte Slider regeln die Linienstärke (0–12 px) und die Hintergrund-Deckkraft (0–100 %) für Wochenenden und Kalender-Markierungen. Sie erscheinen passend zum Stil: die Stärke bei linken/unteren Linien, die Deckkraft bei Hintergründen, beide bei `both`. Die Regler gelten für die Datums-/Zeilenmarkierung; Terminblöcke behalten ihren eigenen Stil. Standard bleiben 4 px für linke Linien, 3 px für untere Linien und 24 % Hintergrund-Deckkraft. Null blendet die jeweilige Markierung aus. Der Editor zeigt die wirksamen Standardwerte an und behält die Werte jeder Quelle beim Stilwechsel bei.
 
@@ -66,7 +66,15 @@ month_table_marker_line_width: 6
 month_table_marker_background_opacity: 50
 ```
 
-Die Werte gelten auch bei aktivierter Zeilenmarkierung. Bei Überschneidungen haben die Kalenderwerte wie bei den bisherigen Farben Vorrang. YAML-Werte außerhalb der Bereiche werden begrenzt; ungültige Werte verwenden die Standards. Entferne die Optionen, um die Standardwerte des gewählten Stils wiederherzustellen.
+Die Werte gelten auch bei aktivierter Zeilenmarkierung. YAML-Werte außerhalb der Bereiche werden begrenzt; ungültige Werte verwenden die Standards. Entferne die Optionen, um die Standardwerte des gewählten Stils wiederherzustellen.
+
+Der heutige Tag erhält eine Tönung über den Datums- und Wochenendfarben. Für einen durchgehenden Rahmen wähle **Monatstabelle: heutigen Tag hervorheben → Ganze Zeile umranden**. Die Farbe kann der Theme-Akzent sein oder separat eingestellt werden. Die Stärke ist von 1 bis 8 px einstellbar (Standard 2 px).
+
+```yaml
+month_table_today_style: outline
+month_table_today_color: "#008b7b"
+month_table_today_outline_width: 3
+```
 
 Das Hinzufügen eines Kalenders verändert die Breite der Datumsspalte nicht mehr. Die Mindestbreite beträgt einheitlich 92 px und lässt sich über `month_table_date_width` einstellen (92–280 px). Lange Kalendertexte bleiben innerhalb der Spalte, auch wenn die Zeile für Text wachsen darf. Größere Datumsschrift darf die Spalte weiterhin verbreitern, damit das Datum lesbar bleibt.
 

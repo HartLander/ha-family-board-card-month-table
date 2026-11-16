@@ -5,6 +5,7 @@ import {
   autoDetectPersons,
   FALLBACK_COLORS,
   monthTableHighlightSettings,
+  monthTableTodayOutlineWidth,
 } from "./ha-family-board-card";
 import type { FamilyBoardConfig } from "./ha-family-board-card";
 import { langOf, localize } from "./localize";
@@ -28,6 +29,7 @@ const MONTH_COLORS = [
   "month_table_sunday_color",
   "month_table_marker_color",
   "month_table_marker_text_color",
+  "month_table_today_color",
 ] as const;
 
 // One ha-form per person row, with entity pickers filtered by domain.
@@ -118,6 +120,11 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
       time_grid: String(this._config.time_grid ?? 30),
     };
     if (this._config.view === "month_table" || this._config.views?.includes("month_table")) {
+      data.month_table_today_style =
+        this._config.month_table_today_style === "outline" ? "outline" : "background";
+      if (data.month_table_today_style === "outline") {
+        data.month_table_today_outline_width = monthTableTodayOutlineWidth(this._config);
+      }
       for (const marker of [false, true]) {
         const appearance = monthTableHighlightSettings(this._config, marker);
         const prefix = marker ? "month_table_marker" : "month_table_weekend";
@@ -281,6 +288,29 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         styleField("month_table_weekend_style"),
         ...appearanceFields(false),
         { name: "month_table_weekend_full_row", selector: { boolean: {} } },
+        {
+          name: "month_table_today_style",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: ["background", "outline"].map((value) => ({
+                value,
+                label: this._t(`o_today_${value}`),
+              })),
+            },
+          },
+        },
+        { name: "month_table_today_color", selector: { color_rgb: {} } },
+        ...(cfg.month_table_today_style === "outline"
+          ? [
+              {
+                name: "month_table_today_outline_width",
+                selector: {
+                  number: { min: 1, max: 8, step: 1, mode: "slider", unit_of_measurement: "px" },
+                },
+              },
+            ]
+          : []),
         {
           name: "month_table_marker_calendars",
           selector: { entity: { filter: { domain: "calendar" }, multiple: true } },
@@ -530,6 +560,18 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
             .join("");
       }
     }
+    if (
+      next.month_table_today_style === "background" &&
+      this._config.month_table_today_style === undefined
+    ) {
+      delete next.month_table_today_style;
+    }
+    if (
+      this._config.month_table_today_outline_width === undefined &&
+      next.month_table_today_outline_width === monthTableTodayOutlineWidth(this._config)
+    ) {
+      delete next.month_table_today_outline_width;
+    }
     if (typeof next.time_grid === "string") next.time_grid = Number(next.time_grid);
     // keep persons + calendars untouched by the settings form
     const config: FamilyBoardConfig = {
@@ -570,6 +612,9 @@ export class FamilyBoardCardEditor extends LitElement implements LovelaceCardEdi
         "month_table_weekend_full_row",
         "month_table_marker_full_row",
         "month_table_weekend_style",
+        "month_table_today_style",
+        "month_table_today_color",
+        "month_table_today_outline_width",
         "month_table_marker_style",
         "month_table_weekend_line_width",
         "month_table_weekend_background_opacity",

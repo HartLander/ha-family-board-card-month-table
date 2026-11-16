@@ -128,6 +128,9 @@ export interface FamilyBoardConfig extends LovelaceCardConfig {
   month_table_weekend_style?: HighlightStyle;
   month_table_weekend_line_width?: number;
   month_table_weekend_background_opacity?: number;
+  month_table_today_style?: "background" | "outline";
+  month_table_today_color?: string;
+  month_table_today_outline_width?: number;
   month_table_marker_calendars?: string[];
   month_table_marker_keep_columns?: boolean;
   month_table_marker_mode?: "chip" | "text" | "indicator";
@@ -327,9 +330,11 @@ export function monthTableHighlightSettings(config: FamilyBoardConfig, marker: b
   const style: HighlightStyle =
     configuredStyle && ["line", "background", "both", "underline"].includes(configuredStyle)
       ? configuredStyle
-      : marker
-        ? "both"
-        : "background";
+      : !marker
+        ? "background"
+        : config.month_table_marker_mode === "indicator"
+          ? "line"
+          : "both";
   const bounded = (value: unknown, maximum: number, fallback: number) =>
     typeof value === "number" && Number.isFinite(value)
       ? Math.max(0, Math.min(maximum, value))
@@ -348,6 +353,34 @@ export function monthTableHighlightSettings(config: FamilyBoardConfig, marker: b
       100,
       24,
     ),
+  };
+}
+
+export function monthTableTodayOutlineWidth(config: FamilyBoardConfig): number {
+  const value = config.month_table_today_outline_width;
+  return typeof value === "number" && Number.isFinite(value) ? Math.max(1, Math.min(8, value)) : 2;
+}
+
+/** Each source contributes only the parts of its style that it actually draws. */
+function monthTableHighlight(
+  color: string | undefined,
+  { style, lineWidth, opacity }: ReturnType<typeof monthTableHighlightSettings>,
+) {
+  const stripe = color && lineWidth > 0 && (style === "line" || style === "both");
+  const underline = color && lineWidth > 0 && style === "underline";
+  const background = color && opacity > 0 && (style === "background" || style === "both");
+  return {
+    color,
+    fill: background
+      ? `color-mix(in srgb, ${color} ${opacity}%, var(--fb-month-surface))`
+      : undefined,
+    // Make room for the outline at the edge so the accent still has its full width.
+    stripe: stripe
+      ? `inset calc(${lineWidth}px + var(--fb-month-active-outline, 0px)) 0 ${color}`
+      : undefined,
+    underline: underline
+      ? `inset 0 calc(-1 * (${lineWidth}px + var(--fb-month-active-outline, 0px))) ${color}`
+      : undefined,
   };
 }
 
@@ -1699,27 +1732,6 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     );
   }
 
-  private _dateStyle(date: Date, markers: RawEvent[]) {
-    const color = markers.length ? this._markerColor(markers[0]) : this._weekendColor(date);
-    const { style, lineWidth, opacity } = monthTableHighlightSettings(
-      this._config,
-      markers.length > 0,
-    );
-    return {
-      "--fb-date-highlight": color || undefined,
-      background:
-        color && opacity > 0 && (style === "background" || style === "both")
-          ? `color-mix(in srgb, ${color} ${opacity}%, var(--card-background-color, #fff))`
-          : undefined,
-      "box-shadow":
-        color && lineWidth > 0 && (style === "line" || style === "both")
-          ? `inset ${lineWidth}px 0 ${color}`
-          : color && lineWidth > 0 && style === "underline"
-            ? `inset 0 -${lineWidth}px ${color}`
-            : undefined,
-    };
-  }
-
   private _weekendColor(date: Date): string | undefined {
     return date.getDay() === 6
       ? this._config.month_table_saturday_color
@@ -1728,24 +1740,29 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
         : undefined;
   }
 
-  private _rowStyle(date: Date, markers: RawEvent[]) {
-    const marker = !!this._config.month_table_marker_full_row && markers.length > 0;
-    const color = marker
-      ? this._markerColor(markers[0])
-      : this._config.month_table_weekend_full_row
-        ? this._weekendColor(date)
-        : undefined;
-    const { style, lineWidth, opacity } = monthTableHighlightSettings(this._config, marker);
+  private _monthTableStyles(date: Date, markers: RawEvent[]) {
+    const weekend = monthTableHighlight(
+      this._weekendColor(date),
+      monthTableHighlightSettings(this._config, false),
+    );
+    const marker = monthTableHighlight(
+      markers.length ? this._markerColor(markers[0]) : undefined,
+      monthTableHighlightSettings(this._config, true),
+    );
+    const weekendRow = this._config.month_table_weekend_full_row ? weekend : undefined;
+    const markerRow = this._config.month_table_marker_full_row ? marker : undefined;
+    const dateShadows = [marker.stripe ?? weekend.stripe, marker.underline ?? weekend.underline];
     return {
-      "--fb-row-highlight": color || undefined,
-      background:
-        color && opacity > 0 && (style === "background" || style === "both")
-          ? `color-mix(in srgb, ${color} ${opacity}%, var(--card-background-color, #fff))`
-          : undefined,
-      "box-shadow":
-        color && lineWidth > 0 && style === "underline"
-          ? `inset 0 -${lineWidth}px ${color}`
-          : undefined,
+      date: {
+        "--fb-date-highlight": marker.color ?? weekend.color,
+        "--fb-month-fill": marker.fill ?? weekend.fill,
+        "box-shadow": dateShadows.filter(Boolean).join(", ") || undefined,
+      },
+      person: {
+        "--fb-row-highlight": markerRow?.color ?? weekendRow?.color,
+        "--fb-month-fill": markerRow?.fill ?? weekendRow?.fill,
+        "box-shadow": markerRow?.underline ?? weekendRow?.underline,
+      },
     };
   }
 
@@ -3446,6 +3463,7 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
   /** Shared days-by-person table for a week or an exact calendar month. */
   private _renderPeopleTable(month = false) {
     const fill = month && this._cardHeight === undefined && this._config.month_table_fill_height;
+    const outline = month && this._config.month_table_today_style === "outline";
     const short = weekdayNames(this.hass, "short", month ? this._firstDayJs : this._weekStartJs);
     const { start, numDays } = this._monthBounds();
     const hiddenCalendars =
@@ -3490,11 +3508,19 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     return html`
       <div class="weekhead">${month ? this._monthNav() : this._weekNav()}</div>
       <div
-        class="weekwrap ${month ? "month-table" : ""} ${fill ? "fill-month" : ""} ${month && this._config.month_table_marker_grow && this._config.month_table_marker_mode !== "indicator" ? "grow-markers" : ""} ${month && this._config.month_table_marker_mode === "indicator" ? "indicator-only" : ""} ${
+        class="weekwrap ${month ? "month-table" : ""} ${outline ? "today-outline" : ""} ${fill ? "fill-month" : ""} ${month && this._config.month_table_marker_grow && this._config.month_table_marker_mode !== "indicator" ? "grow-markers" : ""} ${month && this._config.month_table_marker_mode === "indicator" ? "indicator-only" : ""} ${
           month && this._config.month_table_full_height ? "full-month" : ""
         } ${month && this._config.month_table_inline_date ? "inline-date" : ""} ${
           month && this._config.month_table_compact_header ? "compact-header" : ""
         }"
+        style=${styleMap({
+          "--fb-month-today-color": month
+            ? this._config.month_table_today_color || undefined
+            : undefined,
+          "--fb-month-outline-width": outline
+            ? `${monthTableTodayOutlineWidth(this._config)}px`
+            : undefined,
+        })}
       >
         <div class="weekgrid" style="grid-template-columns:${cols}">
           <div class="corner"></div>
@@ -3517,15 +3543,18 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
               </div>`,
           )}
           ${days.map((d) => {
-            const markers = month ? this._markersOn(dateFor(d)) : [];
-            const rowStyle = month ? this._rowStyle(dateFor(d), markers) : {};
-            const family = this._familyOn(dateFor(d)).filter(
+            const date = dateFor(d);
+            const current = isToday(d);
+            const markers = month ? this._markersOn(date) : [];
+            const styles = month ? this._monthTableStyles(date, markers) : undefined;
+            const family = this._familyOn(date).filter(
               (event) => !month || !this._markerCals().includes(event.calendar),
             );
             return html`
               <div
-                class="wday ${isToday(d) ? "today" : ""} ${markers.length ? "has-markers" : ""}"
-                style=${styleMap(month ? this._dateStyle(dateFor(d), markers) : {})}
+                class="wday ${current ? "today" : ""} ${markers.length ? "has-markers" : ""} ${outline && current && shown.length === 0 ? "row-end" : ""}"
+                style=${styleMap(styles?.date ?? {})}
+                aria-current=${month && current ? "date" : nothing}
                 title=${markers.length ? markers.map((event) => event.summary).join(" · ") : this._t("day")}
                 role="button"
                 tabindex="0"
@@ -3552,12 +3581,12 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
                 >
                 ${month ? this._renderMarkers(markers) : nothing}
               </div>
-              ${shown.map(({ p, i }) => {
+              ${shown.map(({ p, i }, index) => {
                 const canCreate = this._personCanCreate(p);
                 return html`
                   <div
-                    class="wcell ${isToday(d) ? "today" : ""} ${canCreate ? "creatable" : ""}"
-                    style=${styleMap(rowStyle)}
+                    class="wcell ${current ? "today" : ""} ${canCreate ? "creatable" : ""} ${outline && current && index === shown.length - 1 ? "row-end" : ""}"
+                    style=${styleMap(styles?.person ?? {})}
                     @click=${() => canCreate && this._openCreateForDate(i, dateFor(d))}
                   >
                     ${(this._isOff(i)
@@ -6195,6 +6224,45 @@ export class FamilyBoardCard extends LitElement implements LovelaceCard {
     .wday.today,
     .wcell.today {
       background: color-mix(in srgb, var(--fb-accent) 8%, transparent);
+    }
+    .month-table {
+      --fb-month-surface: var(--card-background-color, var(--ha-card-background, #fff));
+      --fb-month-today-ink: var(--fb-month-today-color, var(--fb-accent, #03a9f4));
+    }
+    .month-table .wday {
+      --fb-month-cell-base: var(--fb-month-surface);
+    }
+    .month-table .weekgrid > :is(.wday, .wcell) {
+      background-color: var(--fb-month-fill, var(--fb-month-cell-base, transparent));
+    }
+    .month-table:not(.today-outline) :is(.wday, .wcell).today {
+      background-color: color-mix(
+        in srgb,
+        var(--fb-month-today-ink) 8%,
+        var(--fb-month-fill, var(--fb-month-cell-base, transparent))
+      );
+    }
+    .month-table.today-outline .wcell.today {
+      position: relative;
+    }
+    .month-table.today-outline :is(.wday, .wcell).today {
+      --fb-month-active-outline: var(--fb-month-outline-width);
+    }
+    .month-table.today-outline :is(.wday, .wcell).today::after {
+      content: "";
+      position: absolute;
+      /* Cover each grid divider to join the strokes across the entire row. */
+      inset: 0 0 -1px -1px;
+      z-index: 1;
+      pointer-events: none;
+      border-block: var(--fb-month-outline-width) solid var(--fb-month-today-ink);
+    }
+    .month-table.today-outline .wday.today::after {
+      inset: 0 -1px -1px 0;
+      border-left: var(--fb-month-outline-width) solid var(--fb-month-today-ink);
+    }
+    .month-table.today-outline .today.row-end::after {
+      border-right: var(--fb-month-outline-width) solid var(--fb-month-today-ink);
     }
     .wchip {
       border-radius: var(--fb-radius-sm);

@@ -196,6 +196,52 @@ it("offers the localized month table and its empty-person filter", async () => {
   });
 });
 
+describe("month table today styling", () => {
+  it("shows the shade by default and the width slider only for an outline", async () => {
+    const base = await mountEditor({ view: "month_table" });
+    expect(base.settings.data.month_table_today_style).toBe("background");
+    expect(base.fields()).toContain("month_table_today_color");
+    expect(base.fields()).not.toContain("month_table_today_outline_width");
+
+    const outlined = await mountEditor({
+      view: "month_table",
+      month_table_today_style: "outline",
+      month_table_today_color: "#008b7b",
+    });
+    expect(outlined.settings.computeLabel({ name: "month_table_today_outline_width" })).toBe(
+      "Heute: Stärke der Umrandung",
+    );
+    expect(outlined.fields()).toContain("month_table_today_outline_width");
+    expect(outlined.settings.data.month_table_today_outline_width).toBe(2);
+    expect(outlined.settings.data.month_table_today_color).toEqual([0, 139, 123]);
+
+    let config: Record<string, unknown> = {};
+    outlined.el.addEventListener("config-changed", (event) => {
+      config = (event as CustomEvent).detail.config;
+    });
+    outlined.settings.dispatchEvent(
+      new CustomEvent("value-changed", {
+        detail: { value: { ...outlined.settings.data, month_table_today_outline_width: 4 } },
+      }),
+    );
+    expect(config).toMatchObject({
+      month_table_today_style: "outline",
+      month_table_today_color: "#008b7b",
+      month_table_today_outline_width: 4,
+    });
+  });
+
+  it("defaults color-indicator markings to a line unless a style is set", async () => {
+    const config = { view: "month_table", month_table_marker_mode: "indicator" };
+    const indicator = await mountEditor(config);
+    expect(indicator.fields()).toContain("month_table_marker_line_width");
+    expect(indicator.fields()).not.toContain("month_table_marker_background_opacity");
+
+    const explicit = await mountEditor({ ...config, month_table_marker_style: "both" });
+    expect(explicit.fields()).toContain("month_table_marker_background_opacity");
+  });
+});
+
 describe("fixed card height", () => {
   it("exposes an optional pixel field in the layout settings", async () => {
     const { fields, settings } = await mountEditor({ view: "agenda", views: ["agenda"] });
