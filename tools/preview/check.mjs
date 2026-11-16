@@ -223,6 +223,124 @@ if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "fix
 }
 if (process.env.BROWSER_CHECK_GROUP === "fixed-card-height") await finish();
 
+/* --- weekend, calendar marker and today on the same row ------------- */
+if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "highlight-layers") {
+  for (const [width, dark] of [[390, false], [768, true], [1440, false]]) {
+    const { page, errors } = await open({
+      view: "month_table", width, height: 900, slim: true, dark,
+      timezoneId: "Europe/Berlin", time: new Date("2026-11-15T10:20:00+01:00"),
+    });
+    await page.evaluate(() => {
+      const card = document.querySelector("family-board-card-month-table");
+      const read = card.hass.callApi;
+      card.hass = { ...card.hass, callApi: (method, path) =>
+        path.startsWith("calendars/calendar.muell?")
+          ? Promise.resolve([14, 15].map(day => ({
+              uid: "holiday-" + day, summary: "Feiertag",
+              start: { date: "2026-11-" + day }, end: { date: "2026-11-" + (day + 1) },
+            })))
+          : read(method, path) };
+      const frame = card.renderRoot.querySelector("ha-card");
+      frame.style.background = "var(--card-background-color)";
+    });
+    const configure = async patch => {
+      await page.evaluate(async patch => {
+        const card = document.querySelector("family-board-card-month-table");
+        card.setConfig({ ...card._config, ...patch });
+        await card.updateComplete;
+      }, patch);
+      await page.waitForTimeout(220);
+    };
+    const read = () => page.evaluate(() => {
+      const card = document.querySelector("family-board-card-month-table");
+      const dates = [...card.renderRoot.querySelectorAll(".wday")];
+      const style = cell => {
+        const css = getComputedStyle(cell);
+        const outline = getComputedStyle(cell, "::after");
+        return {
+          fill: css.backgroundColor, accent: css.boxShadow,
+          edges: outline.content === "none" ? [] : ["Top", "Right", "Bottom", "Left"].map(
+            edge => parseFloat(outline["border" + edge + "Width"]),
+          ),
+          ink: outline.borderTopColor,
+        };
+      };
+      const row = d => {
+        const date = dates[d - 1];
+        const cells = [date];
+        for (let el = date.nextElementSibling; el?.classList.contains("wcell"); el = el.nextElementSibling)
+          cells.push(el);
+        return cells.map(style);
+      };
+      return {
+        saturday: row(7), markedSaturday: row(14), sunday: row(8), today: row(15),
+        current: dates[14].getAttribute("aria-current"),
+        events: [...card.renderRoot.querySelectorAll(".wchip")].map(el => getComputedStyle(el).backgroundColor),
+        heights: dates.map(el => el.offsetHeight),
+      };
+    });
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const fills = row => row.map(cell => cell.fill);
+    const label = `${width}px, ${dark ? "dunkel" : "hell"}`;
+    await configure({
+      family_calendars: undefined, weather_entity: undefined, card_height: 540,
+      header_position: "bottom", navigation_position: "bottom",
+      month_table_inline_date: true, month_table_compact_header: true,
+      month_table_row_height: 30, month_table_row_padding: 2,
+      month_table_saturday_color: "#5281d4", month_table_sunday_color: "#864c9e",
+      month_table_weekend_full_row: true, month_table_weekend_style: "background",
+      month_table_marker_calendars: ["calendar.muell"], month_table_marker_mode: "indicator",
+      month_table_marker_color: "#ff8800", month_table_marker_full_row: true,
+      month_table_today_style: "outline", month_table_today_color: "#008b7b",
+      month_table_today_outline_width: 3,
+    });
+    const line = await read();
+    check(`Nur Farbhinweis lässt Samstagsfarbe in der ganzen Zeile stehen (${label})`,
+      same(fills(line.markedSaturday), fills(line.saturday)) &&
+      line.markedSaturday[0].accent.includes("rgb(255, 136, 0)") &&
+      line.markedSaturday.slice(1).every(cell => cell.accent === "none"));
+    check(`Heute umrandet die ganze Zeile über der Sonntagsfarbe (${label})`,
+      same(fills(line.today), fills(line.sunday)) && line.current === "date" &&
+      line.today[0].accent.includes("rgb(255, 136, 0)") &&
+      line.today.every((cell, index, row) => cell.ink === "rgb(0, 139, 123)" &&
+        same(cell.edges, [3, index === row.length - 1 ? 3 : 0, 3, index === 0 ? 3 : 0])));
+
+    if (process.env.HIGHLIGHT_LAYERS_SCREENSHOT_DIR) {
+      await page.evaluate(() => {
+        const root = document.querySelector("family-board-card-month-table").renderRoot;
+        const wrap = root.querySelector(".weekwrap");
+        wrap.scrollTop = root.querySelectorAll(".wday")[10].offsetTop - 42;
+      });
+      await page.locator("family-board-card-month-table").locator("ha-card").screenshot({
+        path: join(process.env.HIGHLIGHT_LAYERS_SCREENSHOT_DIR, `highlights-${width}.png`),
+      });
+    }
+
+    await configure({ month_table_today_style: "background", month_table_today_color: "#008b7b",
+      month_table_marker_full_row: false, month_table_marker_style: "line" });
+    const shade = await read();
+    check(`Heute-Tönung bleibt über der Sonntagsfarbe, Termine und Zeilenhöhe bleiben gleich (${label})`,
+      shade.today.every((cell, index) => cell.fill !== shade.sunday[index].fill && !cell.edges.length) &&
+      same(fills(shade.markedSaturday), fills(shade.saturday)) &&
+      same(shade.events, line.events) && same(shade.heights, line.heights));
+    await configure({ month_table_weekend_style: "both", month_table_marker_style: "underline",
+      month_table_today_style: "outline", month_table_today_outline_width: 0 });
+    const underline = await read();
+    check(`Kalenderunterstrich und Wochenendbalken können zusammen erscheinen (${label})`,
+      same(fills(underline.markedSaturday), fills(underline.saturday)) &&
+      underline.markedSaturday[0].accent.includes("rgb(255, 136, 0)") &&
+      underline.markedSaturday[0].accent.includes("rgb(82, 129, 212)") &&
+      same(underline.today[0].edges, [1, 0, 1, 1]));
+    await configure({ persons: [], month_table_today_outline_width: 50 });
+    const dateOnly = await read();
+    check(`Umrandung schließt auch bei einer reinen Datumsspalte (${label})`,
+      dateOnly.today.length === 1 && same(dateOnly.today[0].edges, [8, 8, 8, 8]) &&
+      errors.length === 0, errors.join(" | "));
+    await page.close();
+  }
+}
+if (process.env.BROWSER_CHECK_GROUP === "highlight-layers") await finish();
+
 /* --- source-specific line thickness and opacity -------------------- */
 if (!process.env.BROWSER_CHECK_GROUP || process.env.BROWSER_CHECK_GROUP === "highlight-sliders") {
 for (const [width,dark] of [[400,false],[1080,true]]) {
@@ -385,14 +503,14 @@ if(process.env.BROWSER_CHECK_GROUP==="styles-width")await finish();
 if (process.env.BROWSER_CHECK_GROUP !== "indicator") {
 for (const width of [400, 1080]) {
   const {page, errors} = await open({view: "month_table", width, height: 1920, slim: true, dark: true,
-    time: new Date("2026-12-24T10:00:00+01:00"), timezoneId: "Europe/Berlin"});
+    time: new Date("2026-12-23T10:00:00+01:00"), timezoneId: "Europe/Berlin"});
   await page.evaluate(async () => {
     const card = document.querySelector("family-board-card-month-table"), read = card.hass.callApi;
     card.hass = {...card.hass, callApi: async (method, path) => path.startsWith("calendars/calendar.muell?")
       ? ["2026-12-24", "2026-12-26"].map(day => ({uid: day, summary: "Feiertag", start: {date: day},
           end: {date: day === "2026-12-24" ? "2026-12-25" : "2026-12-27"}})) : read(method, path)};
     card.setConfig({...card._config, family_calendars: undefined, month_table_marker_calendars: ["calendar.muell"],
-      month_table_marker_mode: "indicator", month_table_marker_color: "#ff8800",
+      month_table_marker_mode: "indicator", month_table_marker_style: "both", month_table_marker_color: "#ff8800",
       month_table_saturday_color: "#3366ff", month_table_sunday_color: "#cc3344",
       month_table_full_height: true, month_table_inline_date: true,
       month_table_font_size: 12, month_table_row_height: 32, month_table_row_padding: 1});
